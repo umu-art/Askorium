@@ -103,7 +103,6 @@ components:
         - href
         - type
         - position
-        - isAttachment
       properties:
         href:
           type: string
@@ -124,9 +123,6 @@ components:
         snippet:
           type: string
           description: Небольшой контекст вокруг ссылки (короткий сниппет).
-        isAttachment:
-          type: boolean
-          description: Является ли ссылка на файл/вложение.
 
     Document:
       type: object
@@ -153,9 +149,6 @@ components:
         descriptionSource:
           $ref: '#/components/schemas/DocumentDescriptionSourceType'
           description: Источник описания.
-        pages:
-          type: integer
-          description: Количество страниц (для PDF).
 
     ContentBlockType:
       type: string
