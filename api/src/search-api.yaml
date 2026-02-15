@@ -122,7 +122,6 @@ components:
       properties:
         url:
           type: string
-          format: uri
           example: "https://www.hse.ru/"
         title:
           type: string

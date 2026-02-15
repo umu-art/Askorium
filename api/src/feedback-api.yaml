@@ -17,14 +17,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Feedback"
+              $ref: "#/components/schemas/FeedbackDto"
       responses:
         200:
           description: Обратная связь успешно получена
 
 components:
   schemas:
-    Feedback:
+    FeedbackDto:
       type: object
       properties:
         queryId:

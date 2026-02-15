@@ -20,25 +20,25 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Source"
+                  $ref: "#/components/schemas/SourceDto"
     post:
       tags:
         - source
-      operationId: addSource
+      operationId: upsertSource
       summary: Добавить / обновить источник для индексации
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Source"
+              $ref: "#/components/schemas/SourceDto"
       responses:
         201:
           description: Успешно добавлен / обновлён источник
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Source"
+                $ref: "#/components/schemas/SourceDto"
     delete:
       tags:
         - source
@@ -73,20 +73,30 @@ paths:
         200:
           description: Синхронизация завершена
 
+  /ask/source/auto-sync:
+    post:
+      tags:
+        - source
+      operationId: autoSyncSource
+      summary: Вызывает авто-синхронизацию всех источников, у которых включена авто-синхронизация
+      description: Синхронизация выполняется асинхронно, запрос возвращает результат сразу, а синхронизация продолжается в фоне.
+      responses:
+        200:
+          description: Синхронизация завершена
+
 components:
   schemas:
-    Source:
+    SourceDto:
       type: object
       required:
         - sourceUrl
       properties:
-        sourceId:
+        id:
           type: string
           format: uuid
           description: UUID-идентификатор источника
         sourceUrl:
           type: string
-          format: uri
           description: URL источника, который нужно индексировать
           example: "https://www.hse.ru/"
         syncPolicy:

@@ -5,7 +5,22 @@ info:
   description: Минимальный api для скраппинга страницы.
   version: 1.0.0
 
-paths: {}
+paths:
+  /stub:
+    get:
+      tags:
+        - scrapper
+      operationId: stub
+      summary: Заглушка для успешной генерации моделей.
+      responses:
+        200:
+          description: Успешный ответ от заглушки
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/ScrapperRequest'
+                  - $ref: '#/components/schemas/ScrapperResult'
 
 components:
   schemas:
@@ -17,7 +32,6 @@ components:
       properties:
         url:
           type: string
-          format: uri
           description: URL страницы для скрапинга.
 
     ScrapperResult:
@@ -27,10 +41,10 @@ components:
         - page
       properties:
         page:
-          $ref: '#/components/schemas/ScrapedPage'
+          $ref: '#/components/schemas/ScrappedPage'
           description: Структурированные данные, извлечённые со страницы.
 
-    ScrapedPage:
+    ScrappedPage:
       type: object
       required:
         - url
@@ -39,7 +53,6 @@ components:
       properties:
         url:
           type: string
-          format: uri
           description: URL страницы.
         title:
           type: string
@@ -106,7 +119,6 @@ components:
       properties:
         href:
           type: string
-          format: uri
           description: Целевой URL ссылки.
         type:
           $ref: '#/components/schemas/LinkType'
@@ -132,7 +144,6 @@ components:
       properties:
         url:
           type: string
-          format: uri
           description: Ссылка на документ/изображение.
         mimeType:
           type: string

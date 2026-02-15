@@ -9,7 +9,7 @@ paths:
   /embeddings:
     post:
       tags:
-        - search-internal
+        - encoder
       operationId: generateEmbeddings
       summary: Сгенерировать эмбеддинги для списка текстов
       description: Принимает список текстов, возвращает список векторов эмбеддингов. Используется при индексации контента и при поиске по запросу пользователя.
@@ -30,7 +30,7 @@ paths:
   /rerank:
     post:
       tags:
-        - search-internal
+        - encoder
       operationId: rerank
       summary: Ранжировать блоки относительно запроса через кросс-энкодер
       description: Принимает запрос и список блоков, возвращает оценки релевантности для переранжирования результатов поиска.

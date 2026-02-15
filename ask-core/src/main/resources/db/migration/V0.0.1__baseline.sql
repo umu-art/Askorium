@@ -17,7 +17,6 @@ create table if not exists sources
     id         uuid                        default uuid_generate_v4() not null,
     created    timestamp(6) with time zone default now()              not null,
     updated    timestamp(6) with time zone,
-    user_id    uuid                                                   not null,
     source_url varchar(2048)                                          not null,
     constraint pk_sources primary key (id),
     constraint fk_sources_on_user_id foreign key (user_id) references users on delete cascade,
@@ -30,8 +29,8 @@ create table if not exists source_sync_policies
     created               timestamp(6) with time zone default now()              not null,
     updated               timestamp(6) with time zone,
     source_id             uuid                                                   not null,
-    sync_enabled          boolean                     default true               not null,
-    sync_interval_minutes integer                     default 720                not null,
+    enabled          boolean                     default true               not null,
+    interval_minutes integer                     default 720                not null,
     last_synced_at        timestamp(6) with time zone,
     constraint pk_source_sync_policies primary key (id),
     constraint fk_source_sync_policies_on_source_id foreign key (source_id) references sources on delete cascade
