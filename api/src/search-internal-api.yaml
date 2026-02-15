@@ -1,0 +1,147 @@
+openapi: 3.1.0
+
+info:
+  title: Search Internal Api
+  description: Внутренний API для взаимодействия между ask-search и ask-core. Предоставляет генерацию эмбеддингов и ранжирование через кросс-энкодер.
+  version: 1.0.0
+
+paths:
+  /embeddings:
+    post:
+      tags:
+        - search-internal
+      operationId: generateEmbeddings
+      summary: Сгенерировать эмбеддинги для списка текстов
+      description: Принимает список текстов, возвращает список векторов эмбеддингов. Используется при индексации контента и при поиске по запросу пользователя.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmbeddingRequest"
+      responses:
+        200:
+          description: Эмбеддинги успешно сгенерированы
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmbeddingResponse"
+
+  /rerank:
+    post:
+      tags:
+        - search-internal
+      operationId: rerank
+      summary: Ранжировать блоки относительно запроса через кросс-энкодер
+      description: Принимает запрос и список блоков, возвращает оценки релевантности для переранжирования результатов поиска.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RerankRequest"
+      responses:
+        200:
+          description: Результаты ранжирования
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RerankResponse"
+
+components:
+  schemas:
+    EmbeddingRequest:
+      type: object
+      required:
+        - texts
+      properties:
+        texts:
+          type: array
+          minItems: 1
+          maxItems: 256
+          description: Список текстов для генерации эмбеддингов.
+          items:
+            type: string
+            minLength: 1
+          example:
+            - "Как подключить OAuth2?"
+            - "Spring Boot конфигурация безопасности"
+
+    EmbeddingResponse:
+      type: object
+      required:
+        - embeddings
+        - model
+        - dimension
+      properties:
+        embeddings:
+          type: array
+          description: Список векторов эмбеддингов, в том же порядке что и входные тексты.
+          items:
+            type: array
+            items:
+              type: number
+              format: float
+
+    RerankRequest:
+      type: object
+      required:
+        - query
+        - blocks
+      properties:
+        query:
+          type: string
+          minLength: 1
+          description: Поисковый запрос пользователя.
+          example: "Как подключить OAuth2 в моём приложении?"
+        blocks:
+          type: array
+          minItems: 1
+          maxItems: 128
+          description: Список кандидатов для ранжирования.
+          items:
+            $ref: "#/components/schemas/RerankBlock"
+
+    RerankBlock:
+      type: object
+      required:
+        - id
+        - text
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Идентификатор блока
+        text:
+          type: string
+          minLength: 1
+          description: Текст блока
+          example: "Чтобы подключить OAuth2 в вашем приложении, нужно зарегистрировать его в нашей системе..."
+
+    RerankResponse:
+      type: object
+      required:
+        - results
+        - model
+      properties:
+        results:
+          type: array
+          description: Оценки релевантности для каждого пассажа, отсортированные по убыванию score.
+          items:
+            $ref: "#/components/schemas/RerankResult"
+
+    RerankResult:
+      type: object
+      required:
+        - id
+        - score
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Идентификатор блока
+        score:
+          type: number
+          format: float
+          description: Оценка релевантности (чем выше, тем релевантнее).
+          example: 0.95

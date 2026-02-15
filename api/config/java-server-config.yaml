@@ -1,0 +1,36 @@
+generatorName: spring
+
+additionalProperties:
+  artifactId: ask-api-server
+  groupId: ru.askorium
+
+  basePackage: ru.askorium.api.server
+  invokerPackage: ru.askorium.api.server
+  modelPackage: ru.askorium.api.server.model
+  apiPackage: ru.askorium.api.server
+
+  useSpringController: true
+  useTags: true
+
+  interfaceOnly: true
+  skipDefaultInterface: true
+  useSpringBoot3: true
+  useJakartaEe: true
+  dateLibrary: java8
+
+  parentOverridden: true
+  parentGroupId: org.springframework.boot
+  parentArtifactId: spring-boot-starter-parent
+  parentVersion: 3.5.10
+
+globalProperties:
+  supportingFiles:
+    - pom.xml
+
+  models: ''
+  apis: ''
+
+  modelTests: false
+  apiTests: false
+  modelDocs: false
+  apiDocs: false

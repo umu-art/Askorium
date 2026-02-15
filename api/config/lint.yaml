@@ -1,0 +1,7 @@
+extends:
+  - recommended
+
+rules:
+  security-defined: off
+  operation-4xx-response: off
+  no-ambiguous-paths: error

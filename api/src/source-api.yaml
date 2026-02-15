@@ -1,0 +1,129 @@
+openapi: 3.1.0
+
+info:
+  title: Source Api
+  description: Минимальный api для добавления/удаления/синхронизации источников, по которым будет возможен поиск.
+  version: 1.0.0
+
+paths:
+  /ask/source:
+    get:
+      tags:
+        - source
+      operationId: listSources
+      summary: Получить список источников
+      responses:
+        200:
+          description: Список источников
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Source"
+    post:
+      tags:
+        - source
+      operationId: addSource
+      summary: Добавить / обновить источник для индексации
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Source"
+      responses:
+        201:
+          description: Успешно добавлен / обновлён источник
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Source"
+    delete:
+      tags:
+        - source
+      operationId: deleteSource
+      summary: Удалить источник и его индекс
+      parameters:
+        - name: sourceId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: UUID-идентификатор источника для удаления
+      responses:
+        200:
+          description: Источник удалён
+
+  /ask/source/sync:
+    post:
+      tags:
+        - source
+      operationId: syncSource
+      summary: Синхронизировать источник (синхронно)
+      description: Выполняет синхронизацию источника.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SourceSyncRequest"
+      responses:
+        200:
+          description: Синхронизация завершена
+
+components:
+  schemas:
+    Source:
+      type: object
+      required:
+        - sourceUrl
+      properties:
+        sourceId:
+          type: string
+          format: uuid
+          description: UUID-идентификатор источника
+        sourceUrl:
+          type: string
+          format: uri
+          description: URL источника, который нужно индексировать
+          example: "https://www.hse.ru/"
+        syncPolicy:
+          $ref: "#/components/schemas/SourceAutoSyncPolicy"
+
+    SourceAutoSyncPolicy:
+      type: object
+      required:
+        - enabled
+        - intervalMinutes
+      properties:
+        enabled:
+          type: boolean
+          default: true
+          example: true
+        intervalMinutes:
+          type: integer
+          minimum: 10
+          description: Период авто-синхронизации, в минутах
+          example: 720
+        lastSyncedAt:
+          type: string
+          format: date-time
+          description: Время последней синхронизации
+          example: "2024-01-01T12:00:00Z"
+
+    SourceSyncRequest:
+      type: object
+      required:
+        - sourceId
+      properties:
+        sourceId:
+          type: string
+          format: uuid
+          description: UUID-идентификатор источника
+        force:
+          type: boolean
+          description: Перескрапить всё заново (игнорируя кэш)
+          default: false
+          example: false

@@ -1,0 +1,43 @@
+openapi: 3.1.0
+
+info:
+  title: Feedback Api
+  description: Минимальный api для сбора обратной связи от пользователей.
+  version: 1.0.0
+
+paths:
+  /ask/feedback:
+    post:
+      tags:
+        - feedback
+      operationId: submitFeedback
+      summary: Отправить обратную связь от пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Feedback"
+      responses:
+        200:
+          description: Обратная связь успешно получена
+
+components:
+  schemas:
+    Feedback:
+      type: object
+      properties:
+        queryId:
+          type: string
+          format: uuid
+          description: UUID-идентификатор поискового запроса, к которому относится обратная связь
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Рейтинг от 1 до 5, где 1 - очень плохо, 5 - отлично
+          example: 4
+        text:
+          type: string
+          description: Текст обратной связи от пользователя
+          example: "Результаты поиска были релевантными, но хотелось бы видеть больше источников."

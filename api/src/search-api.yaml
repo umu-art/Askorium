@@ -1,0 +1,138 @@
+openapi: 3.1.0
+
+info:
+  title: Search Api
+  description: Минимальный api для поиска.
+  version: 1.0.0
+
+paths:
+  /ask/query:
+    post:
+      tags:
+        - search
+      operationId: createSearchQuery
+      summary: Создать поисковый запрос (асинхронно)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchCreateRequest"
+      responses:
+        202:
+          description: Запрос создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchCreateResponse"
+
+  /ask/query/{queryId}:
+    get:
+      tags:
+        - search
+      operationId: getSearchQueryResult
+      summary: Получить статус или результат поискового запроса
+      parameters:
+        - name: queryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: UUID-идентификатор поискового запроса
+      responses:
+        200:
+          description: Статус или результат
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchGetResponse"
+
+components:
+  schemas:
+    SearchCreateRequest:
+      type: object
+      required:
+        - query
+        - sourceId
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Поисковый запрос
+          example: "Как подключить OAuth2 в моём приложении?"
+        sourceId:
+          type: string
+          format: uuid
+          description: Идентификатор источника для поиска.
+        mode:
+          type: string
+          description: Режим поиска по скорости/глубине
+          enum:
+            - fast
+            - deep
+          default: fast
+          example: fast
+
+    SearchCreateResponse:
+      type: object
+      required:
+        - queryId
+      properties:
+        queryId:
+          type: string
+          format: uuid
+          description: UUID-идентификатор поискового запроса
+
+    SearchStatus:
+      type: string
+      enum:
+        - RUNNING
+        - DONE
+        - FAILED
+
+    SearchGetResponse:
+      type: object
+      required:
+        - queryId
+        - status
+      properties:
+        queryId:
+          type: string
+          format: uuid
+          description: UUID-идентификатор поискового запроса
+        status:
+          $ref: "#/components/schemas/SearchStatus"
+        answer:
+          type: string
+          description: Сгенерированный ответ (если DONE)
+        sources:
+          type: array
+          description: Ссылки и выдержки из источников (если DONE)
+          items:
+            $ref: "#/components/schemas/SourceSnippet"
+
+    SourceSnippet:
+      type: object
+      required:
+        - url
+        - title
+        - snippet
+      properties:
+        url:
+          type: string
+          format: uri
+          example: "https://www.hse.ru/"
+        title:
+          type: string
+          example: "Документация по OAuth2"
+        date:
+          type: string
+          description: Дата создания страницы/документа
+          examples:
+            - "2025-09-12T10:15:30Z"
+        snippet:
+          type: string
+          description: Краткая выдержка из найденного фрагмента
+          example: "Чтобы подключить OAuth2 в вашем приложении, нужно зарегистрировать его в нашей системе и получить client_id и client_secret..."

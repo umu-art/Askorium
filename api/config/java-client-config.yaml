@@ -1,0 +1,34 @@
+generatorName: java
+
+additionalProperties:
+  artifactId: ask-api-client
+  groupId: ru.askorium
+
+  basePackage: ru.askorium.api.client
+  invokerPackage: ru.askorium.api.client
+  modelPackage: ru.askorium.api.client.model
+  apiPackage: ru.askorium.api.client
+
+  generateBuilders: true
+  useJakartaEe: true
+  library: resttemplate
+  dateLibrary: java8
+
+globalProperties:
+  supportingFiles:
+    - pom.xml
+    - ApiClient.java
+    - BaseApi.java
+    - JavaTimeFormatter.java
+    - RFC3339DateFormat.java
+    - RFC3339InstantDeserializer.java
+    - RFC3339JavaTimeModule.java
+    - Authentication.java
+
+  models: ''
+  apis: ''
+
+  modelTests: false
+  apiTests: false
+  modelDocs: false
+  apiDocs: false

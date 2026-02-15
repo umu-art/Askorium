@@ -1,0 +1,184 @@
+openapi: 3.1.0
+
+info:
+  title: Scrapper Api
+  description: Минимальный api для скраппинга страницы.
+  version: 1.0.0
+
+paths: {}
+
+components:
+  schemas:
+    ScrapperRequest:
+      type: object
+      description: Запрос на скраппинг страницы, отправляется как json в очередь RabbitMQ.
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: URL страницы для скрапинга.
+
+    ScrapperResult:
+      type: object
+      description: Результат скраппинга страницы, получается как json из очереди RabbitMQ после обработки.
+      required:
+        - page
+      properties:
+        page:
+          $ref: '#/components/schemas/ScrapedPage'
+          description: Структурированные данные, извлечённые со страницы.
+
+    ScrapedPage:
+      type: object
+      required:
+        - url
+        - title
+        - blocks
+      properties:
+        url:
+          type: string
+          format: uri
+          description: URL страницы.
+        title:
+          type: string
+          description: Заголовок страницы
+        description:
+          type: string
+          description: Описание страницы
+        previewUrl:
+          type: string
+          description: Ссылка на превью страницы
+        iconUrl:
+          type: string
+          description: Ссылка на иконку страницы
+        language:
+          type: string
+          description: Язык страницы (например "ru", "en"), если определён.
+        lastModified:
+          type: string
+          format: date-time
+          description: Дата последнего изменения, если доступна.
+        blocks:
+          type: array
+          description: Логические блоки текста (заголовки, абзацы).
+          items:
+            $ref: '#/components/schemas/ContentBlock'
+        links:
+          type: array
+          description: Точные ссылки.
+          items:
+            $ref: '#/components/schemas/Link'
+        documents:
+          type: array
+          description: Вложения (изображения, PDF и т.п.) с возможным описанием/текстом.
+          items:
+            $ref: '#/components/schemas/Document'
+
+    ContentBlock:
+      type: object
+      required:
+        - type
+        - text
+      properties:
+        htmlId:
+          type: string
+        type:
+          $ref: '#/components/schemas/ContentBlockType'
+          description: Тип блока.
+        headingLevel:
+          type: integer
+          minimum: 1
+          maximum: 6
+          description: Уровень заголовка (для type=heading).
+        text:
+          type: string
+          description: Очищённый текст блока.
+
+    Link:
+      description: Ссылка со страницы
+      type: object
+      required:
+        - href
+        - type
+        - position
+        - isAttachment
+      properties:
+        href:
+          type: string
+          format: uri
+          description: Целевой URL ссылки.
+        type:
+          $ref: '#/components/schemas/LinkType'
+          description: Внутренняя (внутри домена) или внешняя ссылка.
+        anchorText:
+          type: string
+          description: Текст анкера (если есть).
+        contextBlockId:
+          type: string
+          description: ID блока, внутри которого находится ссылка.
+        position:
+          type: integer
+          description: Начальная позиция ссылки внутри блока.
+        snippet:
+          type: string
+          description: Небольшой контекст вокруг ссылки (короткий сниппет).
+        isAttachment:
+          type: boolean
+          description: Является ли ссылка на файл/вложение.
+
+    Document:
+      type: object
+      required:
+        - url
+        - mimeType
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Ссылка на документ/изображение.
+        mimeType:
+          type: string
+          description: MIME-тип (image/jpeg, application/pdf и т.п.).
+        sizeBytes:
+          type: integer
+          description: Размер в байтах (если доступен).
+        extractedText:
+          type: string
+          description: Текст, извлечённый из файла (OCR / PDF text), если был извлечён.
+        description:
+          type: string
+          description: Короткое текстовое описание (alt, caption или сгенерированное моделью).
+        descriptionSource:
+          $ref: '#/components/schemas/DocumentDescriptionSourceType'
+          description: Источник описания.
+        pages:
+          type: integer
+          description: Количество страниц (для PDF).
+
+    ContentBlockType:
+      type: string
+      description: Тип блока контента.
+      enum:
+        - heading
+        - paragraph
+        - listItem
+      example: paragraph
+
+    LinkType:
+      type: string
+      description: Тип ссылки (внутри домена или внешняя).
+      enum:
+        - internal
+        - external
+      example: internal
+
+    DocumentDescriptionSourceType:
+      type: string
+      description: Источник описания документа.
+      enum:
+        - heading
+        - paragraph
+        - listItem
+      example: paragraph
