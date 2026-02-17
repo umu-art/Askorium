@@ -1,4 +1,4 @@
-package ru.askorium.core.indexes;
+package ru.askorium.core.index;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,6 +11,6 @@ public class IndexText {
 
     private String text;
 
-    private Integer rank;
+    private Float rank;
 
 }

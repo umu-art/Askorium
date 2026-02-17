@@ -1,4 +1,4 @@
-package ru.askorium.core.exceptions;
+package ru.askorium.core.exception;
 
 import org.apache.http.HttpStatus;
 

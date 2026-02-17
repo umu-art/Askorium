@@ -120,19 +120,13 @@ public class SourceSyncService {
     private void normalizeTexts(List<ScrappedPage> scrappedPages) {
         scrappedPages.forEach(page -> {
             var blocks = page.getBlocks();
-            blocks.forEach(block -> {
-                block.setText(textProcessingService.normalizeText(block.getText()));
-            });
+            blocks.forEach(block -> block.setText(textProcessingService.normalizeText(block.getText())));
 
             var links = Objects.requireNonNullElse(page.getLinks(), new ArrayList<Link>());
-            links.forEach(link -> {
-                link.setAnchorText(textProcessingService.normalizeText(link.getAnchorText()));
-            });
+            links.forEach(link -> link.setAnchorText(textProcessingService.normalizeText(link.getAnchorText())));
 
             var documents = Objects.requireNonNullElse(page.getDocuments(), new ArrayList<Document>());
-            documents.forEach(doc -> {
-                doc.setExtractedText(textProcessingService.normalizeText(doc.getExtractedText()));
-            });
+            documents.forEach(doc -> doc.setExtractedText(textProcessingService.normalizeText(doc.getExtractedText())));
         });
     }
 

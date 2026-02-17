@@ -4,9 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.askorium.core.ask_encoder_api.AskEncoderService;
-import ru.askorium.core.indexes.IndexService;
-import ru.askorium.core.indexes.IndexText;
-import ru.askorium.core.indexes.IndexVector;
+import ru.askorium.core.index.IndexService;
+import ru.askorium.core.index.IndexText;
+import ru.askorium.core.index.IndexVector;
 import ru.askorium.core.source.domain.PageEntity;
 
 import java.util.ArrayList;
@@ -31,7 +31,7 @@ public class IndexSyncService {
                                     new IndexText(
                                             block.getIndexId(),
                                             block.getText(),
-                                            0
+                                            0f
                                     ));
 
                     var documentsText = page.getDocuments()
@@ -40,7 +40,7 @@ public class IndexSyncService {
                                     new IndexText(
                                             document.getIndexId(),
                                             document.getExtractedText(),
-                                            0
+                                            0f
                                     ));
 
                     return Stream.concat(blocksTexts, documentsText);
@@ -59,7 +59,7 @@ public class IndexSyncService {
                     new IndexVector(
                             textsFromPages.get(i).getKey(),
                             embeddings.get(i),
-                            0
+                            0f
                     )
             );
         }

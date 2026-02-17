@@ -10,7 +10,7 @@ import org.springframework.validation.BindException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import ru.askorium.core.exceptions.AskCoreException;
+import ru.askorium.core.exception.AskCoreException;
 
 @Slf4j
 @ControllerAdvice

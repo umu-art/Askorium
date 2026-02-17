@@ -1,4 +1,4 @@
 @org.springframework.modulith.ApplicationModule(
         allowedDependencies = {}
 )
-package ru.askorium.core.indexes;
+package ru.askorium.core.exception;

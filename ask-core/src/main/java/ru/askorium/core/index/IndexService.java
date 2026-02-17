@@ -1,4 +1,4 @@
-package ru.askorium.core.indexes;
+package ru.askorium.core.index;
 
 import java.util.List;
 

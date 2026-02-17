@@ -1,3 +1,11 @@
 spring:
   application:
     name: ask-core
+
+askorium:
+  index:
+    text-index-name: askorium-texts
+    vector-index-name: askorium-vectors
+    vector-dimension: 1024
+    hnsw-m: 16
+    hnsw-ef-construction: 100

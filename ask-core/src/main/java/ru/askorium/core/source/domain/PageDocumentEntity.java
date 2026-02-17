@@ -13,8 +13,6 @@ import lombok.ToString;
 import ru.askorium.api.client.model.DocumentDescriptionSourceType;
 import ru.askorium.core.common.BaseEntity;
 
-import java.util.Objects;
-
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true, exclude = "page")
