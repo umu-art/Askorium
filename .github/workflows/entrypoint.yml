@@ -26,6 +26,9 @@ jobs:
           - module: ask-ui
             script: node
 
+          - module: ask-renderer
+            script: python
+
     uses: ./.github/workflows/_build-module.yml
     with:
       module: ${{ matrix.module }}

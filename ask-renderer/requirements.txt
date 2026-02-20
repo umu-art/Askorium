@@ -1,0 +1,4 @@
+aio-pika==9.6.1
+pydantic-settings>=2.13.1
+playwright==1.58.0
+prometheus-client==0.24.1
