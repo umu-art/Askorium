@@ -1,0 +1,15 @@
+rabbitmq:
+  url: ${RABBITMQ_URL:amqp://guest:guest@localhost:5672/}
+  request-queue: scrapper.request
+  retry-queue: scrapper.request.retry
+  dlq: scrapper.request.dlq
+  response-queue: scrapper.result
+  prefetch-count: 5
+  max-retries: 3
+  retry-delay-ms: 30000
+
+scrapper:
+  timeout-ms: 15000
+
+server:
+  port: ${SERVER_PORT:8080}
