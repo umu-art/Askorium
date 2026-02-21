@@ -16,7 +16,6 @@ TARGETS = [
     },
 ]
 
-
 def ensure_gopath_in_env():
     """Добавляем $GOPATH/bin в PATH, чтобы найти установленные Go-утилиты."""
     result = subprocess.run(["go", "env", "GOPATH"], capture_output=True, text=True)

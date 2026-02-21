@@ -1,0 +1,7 @@
+POST http://localhost:8000/render
+Content-Type: application/json
+
+{
+  "url": "https://www.hse.ru/",
+  "timeout_ms": 15000
+}

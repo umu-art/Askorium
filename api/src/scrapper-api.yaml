@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: 3.1.0
 
 info:
   title: Scrapper Api
@@ -19,30 +19,98 @@ paths:
             application/json:
               schema:
                 anyOf:
-                  - $ref: '#/components/schemas/ScrapperRequest'
-                  - $ref: '#/components/schemas/ScrapperResult'
+                  - $ref: '#/components/schemas/ScrapeRequest'
+                  - $ref: '#/components/schemas/ScrapeResponse'
 
 components:
   schemas:
-    ScrapperRequest:
+    ScrapeRequest:
       type: object
-      description: Запрос на скраппинг страницы, отправляется как json в очередь RabbitMQ.
       required:
+        - task_id
         - url
       properties:
+        task_id:
+          type: string
+          format: uuid
+          description: Уникальный идентификатор задачи
         url:
           type: string
-          description: URL страницы для скрапинга.
+          format: uri
+          description: URL для парсинга
+        options:
+          $ref: '#/components/schemas/ScrapeOptions'
+        metadata:
+          type: object
+          description: Сквозные данные, возвращаются без изменений
+          additionalProperties: true
 
-    ScrapperResult:
+    ScrapeOptions:
       type: object
-      description: Результат скраппинга страницы, получается как json из очереди RabbitMQ после обработки.
-      required:
-        - page
       properties:
+        timeout_ms:
+          type: integer
+          default: 30000
+          description: Таймаут загрузки страницы (миллисекунды)
+        max_retries:
+          type: integer
+          default: 3
+          description: Максимальное количество повторных попыток
+        extract_links:
+          type: boolean
+          default: false
+        extract_documents:
+          type: boolean
+          default: false
+
+    # ==================== Ответ (Scrapper -> Core) ====================
+
+    ScrapeResponse:
+      type: object
+      required:
+        - task_id
+        - success
+      properties:
+        task_id:
+          type: string
+          format: uuid
+        success:
+          type: boolean
+          description: Итоговый результат выполнения
         page:
           $ref: '#/components/schemas/ScrappedPage'
-          description: Структурированные данные, извлечённые со страницы.
+          description: Возвращается при успехе
+        error:
+          $ref: '#/components/schemas/ScrapeError'
+          description: Возвращается при ошибке
+        metadata:
+          type: object
+          additionalProperties: true
+
+
+    ScrapeError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+
+    ErrorCode:
+      type: string
+      enum:
+        - TIMEOUT
+        - NETWORK_ERROR
+        - RATE_LIMITED
+        - PAGE_NOT_FOUND
+        - ACCESS_DENIED
+        - INVALID_URL
+        - PARSE_ERROR
+
+
 
     ScrappedPage:
       type: object
