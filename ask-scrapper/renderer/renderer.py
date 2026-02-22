@@ -1,7 +1,8 @@
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, Playwright, Browser
 
-_playwright = None
-_browser = None
+_playwright: Playwright | None = None
+_browser: Browser | None = None
+
 
 async def get_browser():
     global _playwright, _browser
@@ -9,6 +10,17 @@ async def get_browser():
         _playwright = await async_playwright().start()
         _browser = await _playwright.chromium.launch(headless=True)
     return _browser
+
+
+async def shutdown():
+    global _playwright, _browser
+    if _browser is not None:
+        await _browser.close()
+        _browser = None
+    if _playwright is not None:
+        await _playwright.stop()
+        _playwright = None
+
 
 async def render_page(url: str, timeout_ms: int) -> str:
     browser = await get_browser()

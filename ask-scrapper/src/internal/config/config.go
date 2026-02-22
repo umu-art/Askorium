@@ -1,9 +1,10 @@
 package config
 
 import (
-	"github.com/spf13/viper"
 	"os"
 	"regexp"
+
+	"github.com/spf13/viper"
 )
 
 type Config struct {
@@ -56,11 +57,11 @@ func Load() (*Config, error) {
 	return &cfg, nil
 }
 
-// resolveEnvVars заменяет ${VAR} и ${VAR:default} на значения переменных окружения
+var envVarRegex = regexp.MustCompile(`\$\{(\w+)(?::([^}]*))?}`)
+
 func resolveEnvVars(s string) string {
-	re := regexp.MustCompile(`\$\{(\w+)(?::([^}]*))?}`)
-	return re.ReplaceAllStringFunc(s, func(match string) string {
-		parts := re.FindStringSubmatch(match)
+	return envVarRegex.ReplaceAllStringFunc(s, func(match string) string {
+		parts := envVarRegex.FindStringSubmatch(match)
 		envKey := parts[1]
 		defaultVal := parts[2]
 
