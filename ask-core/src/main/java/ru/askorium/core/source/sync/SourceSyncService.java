@@ -5,11 +5,11 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
-import ru.askorium.api.client.model.Document;
-import ru.askorium.api.client.model.Link;
-import ru.askorium.api.client.model.ScrappedPage;
-import ru.askorium.api.server.model.SourceSyncRequest;
+import org.springframework.transaction.annotation.Transactional;
+import ru.askorium.api.model.Document;
+import ru.askorium.api.model.Link;
+import ru.askorium.api.model.ScrappedPage;
+import ru.askorium.api.model.SourceSyncRequest;
 import ru.askorium.core.ask_scrapper_api.AskScrapperService;
 import ru.askorium.core.common.ObjectCompareUtils;
 import ru.askorium.core.source.domain.PageEntity;
@@ -39,11 +39,11 @@ public class SourceSyncService {
     private final RedissonClient redissonClient;
     private final AskScrapperService askScrapperService;
     private final IndexSyncService indexSyncService;
-    private final TransactionTemplate transactionTemplate;
     private final TextProcessingService textProcessingService;
     private final PageMapper pageMapper;
 
     @SneakyThrows
+    @Transactional(transactionManager = "sourcesTransactionManager")
     public void sync(SourceSyncRequest request) {
         var sourceId = request.getSourceId();
 
@@ -54,8 +54,7 @@ public class SourceSyncService {
         }
 
         try {
-            transactionTemplate.executeWithoutResult(status ->
-                    doSync(sourceId, Boolean.TRUE.equals(request.getForce())));
+            doSync(sourceId, Boolean.TRUE.equals(request.getForce()));
         } finally {
             lock.unlock();
         }
@@ -81,11 +80,11 @@ public class SourceSyncService {
                 .collect(Collectors.toMap(PageEntity::getUrl, Function.identity()));
 
         var scrappedUrls = scrappedPages.stream()
-                .map(sp -> sp.getUrl().toString())
+                .map(ScrappedPage::getUrl)
                 .collect(Collectors.toSet());
 
         for (var scrappedPage : scrappedPages) {
-            var url = scrappedPage.getUrl().toString();
+            var url = scrappedPage.getUrl();
             var contentHash = String.valueOf(scrappedPage.hashCode());
 
             var existing = existingByUrl.get(url);
@@ -166,7 +165,7 @@ public class SourceSyncService {
             BiPredicate<T, T> contentEquals,
             Consumer<T> setPage
     ) {
-        var remainingCandidates = new ArrayList<T>(candidates);
+        var remainingCandidates = new ArrayList<>(candidates);
         var toRemove = new ArrayList<T>();
 
         for (var entity : existing) {

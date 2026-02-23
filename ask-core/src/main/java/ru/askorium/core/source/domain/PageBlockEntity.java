@@ -2,6 +2,8 @@ package ru.askorium.core.source.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -10,7 +12,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
-import ru.askorium.api.client.model.ContentBlockType;
+import ru.askorium.api.model.ContentBlockType;
 import ru.askorium.core.common.BaseEntity;
 
 @Data
@@ -28,6 +30,7 @@ public class PageBlockEntity extends BaseEntity {
     @Column(name = "html_id")
     private String htmlId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
     private ContentBlockType type;
 
@@ -38,6 +41,6 @@ public class PageBlockEntity extends BaseEntity {
     private String text;
 
     public String getIndexId() {
-        return "page:" + getId();
+        return "block:" + getId();
     }
 }

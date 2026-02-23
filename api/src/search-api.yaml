@@ -67,13 +67,13 @@ components:
           format: uuid
           description: Идентификатор источника для поиска.
         mode:
-          type: string
-          description: Режим поиска по скорости/глубине
-          enum:
-            - fast
-            - deep
-          default: fast
-          example: fast
+          $ref: "#/components/schemas/SearchMode"
+
+    SearchMode:
+      type: string
+      enum:
+        - fast
+        - deep
 
     SearchCreateResponse:
       type: object
@@ -118,7 +118,7 @@ components:
       required:
         - url
         - title
-        - snippet
+        - text
       properties:
         url:
           type: string
@@ -128,10 +128,11 @@ components:
           example: "Документация по OAuth2"
         date:
           type: string
+          format: date-time
           description: Дата создания страницы/документа
           examples:
             - "2025-09-12T10:15:30Z"
-        snippet:
+        text:
           type: string
-          description: Краткая выдержка из найденного фрагмента
+          description: Текст найденного фрагмента, релевантного запросу
           example: "Чтобы подключить OAuth2 в вашем приложении, нужно зарегистрировать его в нашей системе и получить client_id и client_secret..."

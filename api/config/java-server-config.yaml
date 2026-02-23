@@ -1,12 +1,12 @@
 generatorName: spring
 
 additionalProperties:
-  artifactId: ask-api-server
+  artifactId: ask-api
   groupId: ru.askorium
 
-  basePackage: ru.askorium.api.server
-  invokerPackage: ru.askorium.api.server
-  modelPackage: ru.askorium.api.server.model
+  basePackage: ru.askorium.api
+  invokerPackage: ru.askorium.api
+  modelPackage: ru.askorium.api.model
   apiPackage: ru.askorium.api.server
 
   useSpringController: true

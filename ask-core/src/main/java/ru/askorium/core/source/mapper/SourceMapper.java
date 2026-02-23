@@ -2,8 +2,8 @@ package ru.askorium.core.source.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
-import ru.askorium.api.server.model.SourceAutoSyncPolicy;
-import ru.askorium.api.server.model.SourceDto;
+import ru.askorium.api.model.SourceAutoSyncPolicy;
+import ru.askorium.api.model.SourceDto;
 import ru.askorium.core.common.ToBaseEntity;
 import ru.askorium.core.source.domain.SourceEntity;
 import ru.askorium.core.source.domain.SourceSyncPolicyEntity;

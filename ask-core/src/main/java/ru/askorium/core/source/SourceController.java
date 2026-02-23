@@ -4,9 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
+import ru.askorium.api.model.SourceDto;
+import ru.askorium.api.model.SourceSyncRequest;
 import ru.askorium.api.server.SourceApi;
-import ru.askorium.api.server.model.SourceDto;
-import ru.askorium.api.server.model.SourceSyncRequest;
 import ru.askorium.core.source.domain.SourceEntity;
 import ru.askorium.core.source.jpa.SourceJpa;
 import ru.askorium.core.source.mapper.SourceMapper;
@@ -37,7 +37,7 @@ public class SourceController implements SourceApi {
     }
 
     @Override
-    @Transactional
+    @Transactional(transactionManager = "sourcesTransactionManager")
     public ResponseEntity<SourceDto> upsertSource(SourceDto source) {
         SourceEntity entity;
 
@@ -55,7 +55,7 @@ public class SourceController implements SourceApi {
     }
 
     @Override
-    @Transactional
+    @Transactional(transactionManager = "sourcesTransactionManager")
     public ResponseEntity<Void> deleteSource(UUID sourceId) {
         sourceJpa.deleteById(sourceId);
         return ResponseEntity.ok().build();

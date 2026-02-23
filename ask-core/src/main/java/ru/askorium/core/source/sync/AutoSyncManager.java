@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Service;
 import ru.askorium.api.client.SourceApi;
-import ru.askorium.api.client.model.SourceSyncRequest;
+import ru.askorium.api.model.SourceSyncRequest;
 import ru.askorium.core.exception.AutoSyncFailedException;
 import ru.askorium.core.source.domain.SourceSyncPolicyEntity;
 import ru.askorium.core.source.jpa.SourceJpa;

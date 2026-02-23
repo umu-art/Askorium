@@ -5,12 +5,13 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.annotation.PostConstruct;
-import java.time.OffsetDateTime;
 import lombok.RequiredArgsConstructor;
 import org.openapitools.jackson.nullable.JsonNullableModule;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.OffsetDateTime;
 
 @Configuration
 @RequiredArgsConstructor

@@ -10,8 +10,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import ru.askorium.core.common.BaseEntity;
 
-import java.util.UUID;
-
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)

@@ -2,10 +2,40 @@ spring:
   application:
     name: ask-core
 
+  temporal:
+    connection:
+      target: localhost:7233
+    workers:
+      - task-queue: askorium-search
+        name: ${spring.application.name}
+        virtual-threads:
+          using-virtual-threads: true
+
 askorium:
+  api:
+    self-url: http://localhost:8080
+    encoder-url: http://localhost:8081
+
+  amqp:
+    scrapper-request-queue-name: askorium.scrapper.request
+    scrapper-response-queue-name: askorium.scrapper.response
+
   index:
     text-index-name: askorium-texts
     vector-index-name: askorium-vectors
     vector-dimension: 1024
     hnsw-m: 16
     hnsw-ef-construction: 100
+
+  search:
+    modes:
+      FAST:
+        bm25-size: 50
+        knn-size: 50
+        rrf-k: 60
+        rerank-top-n: 10
+      DEEP:
+        bm25-size: 100
+        knn-size: 100
+        rrf-k: 60
+        rerank-top-n: 20

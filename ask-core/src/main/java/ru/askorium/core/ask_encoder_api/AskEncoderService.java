@@ -1,7 +1,7 @@
 package ru.askorium.core.ask_encoder_api;
 
-import ru.askorium.api.client.model.RerankBlock;
-import ru.askorium.api.client.model.RerankResult;
+import ru.askorium.api.model.RerankBlock;
+import ru.askorium.api.model.RerankResult;
 
 import java.util.List;
 

@@ -98,7 +98,7 @@ def download_openapi_generator(build_dir):
 
 def generate_api(jar_file, yaml_file, lang, mode, config_dir, build_dir):
     """Генерация API для указанного языка и режима"""
-    output_dir = build_dir / f"{lang}-{mode}-api"
+    output_dir = build_dir / f"{lang}-api"
     config_file = config_dir / f"{lang}-{mode}-config.yaml"
 
     if not config_file.exists():
@@ -128,7 +128,7 @@ def install_generated(build_dir, lang_filter="all"):
     api_dirs = list(build_dir.glob("*-api"))
 
     def install_dir(target_dir):
-        lang = target_dir.name.split('-')[-3]
+        lang = target_dir.name.split('-')[0]
 
         if lang_filter != "all" and lang_filter != lang:
             return

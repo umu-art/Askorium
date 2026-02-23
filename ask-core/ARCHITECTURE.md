@@ -4,223 +4,180 @@ ask-core is the Spring Boot orchestrator of the Askorium system. It is a modular
 
 ## Module Overview
 
-Six Spring Modulith modules under `ru.askorium.core`:
+Eight Spring Modulith modules under `ru.askorium.core`:
 
-| Module | Responsibility |
-|---|---|
-| **user** | User lifecycle (cookie-based identity, CRUD), rate limiting (via Redis), request context propagation |
-| **sources** | Source CRUD, sync scheduling, scrapper integration, indexing orchestration (chunking, doc2query, send to ES) |
-| **search** | Query orchestration: sparse + dense retrieval, fusion, reranking, LLM answer generation |
-| **textProcessing** | Text normalization: standardize words, expand abbreviations, remove stop-words, expand synonyms. Internal API for `sources` and `search` |
-| **askSearchApi** | HTTP client for ask-search service (embeddings, reranking) |
-| **askScrapperApi** | RabbitMQ producer/consumer for ask-scrapper service |
+| Module | Package | Status | Responsibility |
+|---|---|---|---|
+| **user** | `user` | Implemented | Cookie-based identity, Spring Security config, global error handling |
+| **source** | `source` | Implemented | Source CRUD, sync scheduling, scrapper integration, indexing orchestration |
+| **feedback** | `feedback` | Implemented | User feedback collection on search results |
+| **index** | `index` | Implemented | Elasticsearch abstraction: BM25 text index + kNN vector index |
+| **search** | `search` | Stub | Query orchestration (domain entities + JPA + controller stub, no business logic yet) |
+| **textProcessing** | `text_processing` | Stub | Text normalization interface (returns text as-is, TODO) |
+| **askEncoderApi** | `ask_encoder_api` | Interface only | HTTP client for ask-encoder service (embeddings, reranking) |
+| **askScrapperApi** | `ask_scrapper_api` | Interface only | Client for ask-scrapper service (web scraping) |
 
 Module boundaries are enforced by Spring Modulith + ArchUnit tests (`ModularityTests`). Modules communicate via Spring application events, not direct bean references across boundaries.
 
 ## Module: user
 
-The `user` module owns identity, rate limiting, and request context propagation.
+The `user` module owns identity and request context propagation.
 
 ### Cookie-based identity
-- Issues and validates a `user_id` cookie (UUID)
-- If the cookie is absent or invalid: creates a new User in Postgres, sets `Set-Cookie: user_id=<uuid>; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=...`
-- All domain entities and events carry `userId`
+- `AuthenticationFilter` (`OncePerRequestFilter`) runs on every request
+- Reads `ask_uid` cookie (UUID). If valid and found in Postgres — updates `lastSeenAt` and `lastSeenIp`
+- If cookie absent or user not found — creates a new `UserEntity` in Postgres, records `firstVisitUserAgent` and `firstVisitHeaders`, sets `Set-Cookie: ask_uid=<uuid>; HttpOnly; Secure; Path=/; Max-Age=315360000` (~10 years)
+- Stores `userId` in `RequestAttributes.SCOPE_REQUEST` — retrieved via `UserUtils.getUserId()` anywhere in request scope
 
-### Rate limiting
-- Enforces per-user request rate limits via Redis (sliding window)
-- Falls back to IP-based limiting before the cookie is issued
-- Configurable limits per endpoint / operation type
+### Security
+- `SecurityConfiguration` disables CSRF, sessions, form login, anonymous, logout, rememberMe
+- Adds `AuthenticationFilter` before `UsernamePasswordAuthenticationFilter`
 
-### Implementation
-- HTTP layer: `OncePerRequestFilter` / `HandlerInterceptor` resolves `userId` into a `RequestContext` (`ThreadLocal` or `@RequestScope` bean), checks rate limits
-- Modulith events: all events include `userId` field, propagated through pipelines
+### Error handling
+- `ExceptionControllerAdvice` — global `@ControllerAdvice` handling `AskCoreException` (custom status code), binding/conversion errors (400), `ErrorResponse` (framework status), and fallback (500)
 
-## Module: textProcessing
+## Module: source
 
-The `textProcessing` module provides text normalization as an internal API consumed by `sources` (indexing pipeline) and `search` (query preparation).
+The `source` module manages content sources and the full scraping → indexing pipeline.
 
-### Normalization steps
-- Standardize words (lowercase, lemmatization)
-- Expand abbreviations and domain-specific terms
-- Remove stop-words
-- Expand synonyms
+### Source CRUD
+- `SourceController` implements generated `SourceApi` interface
+- Operations: list all, upsert (create or update by id), delete, trigger auto-sync, trigger manual sync
+- `SourceEntity` has `sourceUrl` + `SourceSyncPolicyEntity` (enabled, intervalMinutes, lastSyncedAt)
 
-Does **not** include chunking or doc2query — those remain in the `sources` module.
+### Sync pipeline (`SourceSyncService`)
+1. Acquire distributed lock via Redisson (`source-sync:<sourceId>`, 5s wait, 30min lease)
+2. Call `AskScrapperService.scrapSource(url)` → `List<ScrappedPage>`
+3. Normalize all texts via `TextProcessingService.normalizeText()` (blocks, link anchors, document extracted text)
+4. Diff against existing pages by URL:
+   - Skip unchanged pages (by `contentHash`) unless force=true
+   - Update changed pages: sync blocks, links, documents collections via content-equals diffing (`ObjectCompareUtils`)
+   - Delete stale pages no longer returned by scrapper
+5. Update `syncPolicy.lastSyncedAt`
+6. Trigger `IndexSyncService.syncIndexes()` for updated pages
+
+### Auto-sync (`AutoSyncManager`)
+- Filters sources with enabled sync policy and elapsed interval
+- Runs sync for each eligible source in parallel via `AsyncTaskExecutor`
+- Calls self via generated `SourceApi` client (HTTP loopback)
+- Throws `AutoSyncFailedException` if any sync fails
+
+### Index sync (`IndexSyncService`)
+1. Extracts texts from `PageBlockEntity` (prefix `page:<id>`) and `PageDocumentEntity` (prefix `document:<id>`)
+2. Generates embeddings via `AskEncoderService.generateEmbeddings()`
+3. Saves to both Elasticsearch indices: `IndexService.saveTexts()` + `IndexService.saveVectors()`
+
+### Domain entities
+- `PageEntity` — url, title, previewUrl, iconUrl, description, language, contentHash. Has `@OneToMany` to blocks, links, documents (cascade ALL, orphanRemoval)
+- `PageBlockEntity` — htmlId, type (`ContentBlockType`), headingLevel, text
+- `PageLinkEntity` — href, type (`LinkType`), anchorText, snippet, position, blockId
+- `PageDocumentEntity` — url, mimeType, sizeBytes, extractedText, description, descriptionSource (`DocumentDescriptionSourceType`)
+
+## Module: feedback
+
+- `FeedbackController` implements generated `FeedbackApi` — single endpoint `submitFeedback`
+- Maps DTO via `FeedbackMapper` (MapStruct), sets `userId` from request context, saves to Postgres
+- `FeedbackEntity` — queryId, userId, rating (int), text
+
+## Module: index
+
+Elasticsearch abstraction providing text (BM25) and vector (kNN) search.
+
+### `ElasticsearchIndexService`
+- On startup (`@PostConstruct`): creates text and vector indices if they don't exist
+- **Text index**: `key` (keyword) + `text` (text, standard analyzer)
+- **Vector index**: `key` (keyword) + `values` (dense_vector, cosine similarity, HNSW with configurable M and ef_construction)
+- `saveTexts()` / `saveVectors()` — bulk indexing with error reporting
+- `searchBM25(query, size)` — match query on `text` field
+- `searchKnn(vector, size)` — kNN search with `numCandidates = max(size * 10, 100)`
+
+### Configuration (`IndexProperties`)
+Bound to `askorium.index.*`:
+- `textIndexName` = `askorium-texts`
+- `vectorIndexName` = `askorium-vectors`
+- `vectorDimension` = 1024
+- `hnswM` = 16
+- `hnswEfConstruction` = 100
+
+## Module: search (stub)
+
+Domain layer is defined but no business logic is implemented yet.
+
+- `SearchController` implements `SearchApi` — both `createSearchQuery` and `getSearchQueryResult` return null
+- `SearchQueryEntity` — userId, sourceId, status, query, mode, answer, error, finishedAt
+- `SearchResultItemEntity` — queryId, rank, blockId, pageId, scoreSparse, scoreDense, scoreFinal, rerankScore
+- `SearchQueryJpa`, `SearchResultItemJpa` — repositories defined
+- `SearchModuleConfig` — isolated datasource configured
+- `search/serivce/` directory exists but is empty
 
 ## Storage Split
 
 Strict separation — Elasticsearch holds **only** search indices, everything else lives in PostgreSQL.
 
 ### PostgreSQL (primary domain store)
-- Users, Sources, Pages, Blocks metadata, Documents, Links
-- SearchQuery lifecycle (RUNNING/DONE/FAILED), results, audit
-- Feedback
-- Sync jobs / scheduling state
+- Users, Sources (+ sync policies), Pages, Blocks, Links, Documents
+- Search queries, result items, feedback
+- Managed via Flyway migrations (`db/migration/`)
 
 ### Elasticsearch (search indices only)
-- **Sparse index** (BM25): `chunk_text` + `doc_queries` + join fields (`block_id`, `source_id`, `page_id`)
-- **Dense index** (kNN): `embedding_vector` + join fields (`block_id`, `source_id`, `page_id`), optionally `chunk_text` for debugging/highlighting
-
-ES does **not** store: sources, pages, blocks as domain entities, links, documents, snippet metadata, users, queries, feedback, sync state.
+- **Text index** (`askorium-texts`): `key` + `text` for BM25
+- **Vector index** (`askorium-vectors`): `key` + `values` (1024-dim, HNSW, cosine) for kNN
 
 ### Redis
-- Query result caching by key `(userId, sourceId, normalizedQuery, mode)`
-- Rate limiting by `userId` (IP as fallback before cookie is issued)
-
-## Data Flow: Scrapping Pipeline
-
-```
-addSource / syncSource (HTTP, user_id cookie)
-        │
-        ▼
-   sources module
-        │  persists Source{userId,...} in Postgres
-        │  publishes ScrapperRequest {userId, sourceId, url}
-        ▼
-  askScrapperApi ──► RabbitMQ task queue ──► ask-scrapper
-                                                  │
-                                                  ▼
-                                            ScrapperResult
-                                             └─ ScrapedPage
-                                                 ├─ blocks: ContentBlock[]
-                                                 ├─ links: Link[]
-                                                 └─ documents: Document[]
-                                                  │
-  askScrapperApi ◄── RabbitMQ result queue ◄──────┘
-        │  emits event {userId, sourceId, scrapedPage}
-        ▼
-   sources module
-        │  stores ALL content in Postgres (pages, blocks, links, documents)
-        │  triggers indexing
-        ▼
-   Indexing Pipeline
-```
-
-The scrapper returns a `ScrapedPage` containing structured content blocks (headings, paragraphs, list items), internal/external links with positional context, and documents with extracted text (OCR/PDF).
-
-## Data Flow: Indexing Pipeline
-
-After receiving a `ScrapedPage`:
-
-1. **Persist structured content to Postgres**
-   - Upsert `IndexedPage`
-   - Insert/update `IndexedBlock` (raw block text, pre-chunking)
-   - Store links (`PageLink`) and documents (`PageDocument`) with extracted text
-2. **Text normalization** — via `textProcessing` module (standardize words, expand abbreviations, remove stop-words, expand synonyms)
-3. **Overlap chunking** — normalized chunks saved to `IndexedBlock` (Postgres) as source of truth
-4. **doc2query enrichment** — generated queries saved to `IndexedBlock.docQueries` (Postgres)
-5. **Embedding generation** — askSearchApi `POST /embeddings` (batch up to 256)
-6. **Index to Elasticsearch (indices only)**
-   - Sparse index: `block_id`, `source_id`, `page_id`, `chunk_text`, `doc_queries`
-   - Dense index: `block_id`, `source_id`, `page_id`, `embedding_vector` (+ optionally `chunk_text`/`doc_queries`)
-
-## Data Flow: Search Pipeline
-
-`POST /ask/query` creates an async search query bound to `user_id`:
-
-```
-SearchCreateRequest {query, sourceId, mode} + user_id cookie
-        │
-        ▼
-0. Auth/Identity
-   - resolve userId from cookie (create if missing)
-   - validate sourceId belongs to this userId (Postgres)
-        │
-        ▼
-1. Persist SearchQuery{userId, sourceId, query, mode, status=RUNNING} in Postgres
-        │
-        ▼
-2. Query Preparation
-   ├─ Text normalization (via textProcessing module)
-   └─ Expand with generated broad queries
-        │
-        ▼
-3. Retriever (parallel)
-   ├─ N from BM25 sparse search (ES → block_id list + scores)
-   └─ N from dense search:
-      embed query via askSearchApi POST /embeddings → ES kNN → block_id list + scores
-        │
-        ▼
-4. Fusion
-   Convex Score Combination: candidates → M
-        │
-        ▼
-5. Reranker
-   Cross-encoder (BGE-reranker-v2-m3) via askSearchApi POST /rerank
-   ├─ Early Exit: skip candidates below relevance threshold mid-computation
-   └─ Batch mode: multiple candidates per query in one call (up to 128)
-        │
-        ▼
-6. Load metadata FROM Postgres by block_id/page_id
-   → build top-K SourceSnippets {url, title, date, snippet}
-        │
-        ▼
-7. RAG: LLM (Google GenAI via Spring AI) generates answer from top-K snippets
-        │
-        ▼
-8. Persist results in Postgres:
-   - SearchQuery.status=DONE, answer
-   - SearchResultItem[] with ranked block/page refs
-        │
-        ▼
-9. GET /ask/query/{queryId} polls for status and result
-```
-
-Target latency for `fast` mode: < 0.5 sec (assuming warm ES + cache + fast rerank/LLM paths).
+- Distributed locking for source sync (via Redisson)
 
 ## Key Entities
 
 ### Users
 
-| Entity | Fields | Description |
-|---|---|---|
-| **User** | userId (UUID), createdAt, lastSeenAt, userAgent?, ipHash? | User identified by `user_id` cookie |
+| Entity | Table | Fields | Description |
+|---|---|---|---|
+| **UserEntity** | `users` | lastSeenAt, lastSeenIp, firstVisitUserAgent, firstVisitHeaders | User identified by `ask_uid` cookie |
 
 ### Sources & Content (PostgreSQL)
 
-| Entity | Fields | Description |
-|---|---|---|
-| **Source** | sourceId, userId, sourceUrl, syncPolicy(...), createdAt | Website to index and search within |
-| **IndexedPage** | pageId, sourceId, userId, url, title, language, lastModified, hash, createdAt/updatedAt | Page metadata |
-| **IndexedBlock** | blockId, pageId, sourceId, userId, chunkText, docQueries, chunkNo, offsetStart/End, createdAt | Canonical chunk storage and metadata |
-| **PageLink** | linkId, pageId, sourceId, userId, fromBlockId?, url, type (internal/external), position | Links from page |
-| **PageDocument** | docId, pageId, sourceId, userId, url, mime, extractedText, metaJson | Documents (PDF/OCR) and extracted text |
+| Entity | Table | Fields | Description |
+|---|---|---|---|
+| **SourceEntity** | `sources` | sourceUrl, syncPolicy (1:1) | Website to index and search within |
+| **SourceSyncPolicyEntity** | `source_sync_policies` | source (1:1), enabled, intervalMinutes (default 720), lastSyncedAt | Auto-sync configuration |
+| **PageEntity** | `pages` | sourceId, url, title, previewUrl, iconUrl, description, language, contentHash, blocks (1:N), links (1:N), documents (1:N) | Scraped web page |
+| **PageBlockEntity** | `page_blocks` | page, htmlId, type (ContentBlockType), headingLevel, text | Content block within page |
+| **PageLinkEntity** | `page_links` | page, blockId, href, type (LinkType), anchorText, snippet, position | Link within page |
+| **PageDocumentEntity** | `page_documents` | page, url, mimeType, sizeBytes, extractedText, description, descriptionSource | Attached document |
 
 ### Search Lifecycle (PostgreSQL)
 
-| Entity | Fields | Description |
-|---|---|---|
-| **SearchQuery** | queryId, userId, sourceId, status, query, mode, answer, createdAt, finishedAt, error? | Async search request |
-| **SearchResultItem** | queryId, rank, blockId, pageId, scoreSparse?, scoreDense?, scoreFinal, rerankScore? | Search results as block/page references |
-| **Feedback** | feedbackId, queryId, userId, rating (1-5), text, createdAt | User feedback on search quality |
+| Entity | Table | Fields | Description |
+|---|---|---|---|
+| **SearchQueryEntity** | `search_queries` | userId, sourceId, status, query, mode, answer, error, finishedAt | Search request (entities defined, logic not implemented) |
+| **SearchResultItemEntity** | `search_result_items` | queryId, rank, blockId, pageId, scoreSparse, scoreDense, scoreFinal, rerankScore | Search result (entities defined, logic not implemented) |
+| **FeedbackEntity** | `feedbacks` | queryId, userId, rating (int), text | User feedback on search quality |
+
+All entities extend `BaseEntity` (UUID id, created, updated timestamps).
 
 ## Infrastructure Integration
 
 ### PostgreSQL
-- Primary domain store: users, sources, pages, blocks, docs, links
-- Search queries, results, feedback
-- Sync scheduling state, retries, audit
+- Primary domain store for all entities
+- Flyway migrations in `src/main/resources/db/migration/`
+- Each module has isolated HikariCP datasource, EntityManager, and TransactionManager
 
 ### Elasticsearch
-- Sparse index for BM25
-- Dense index for kNN vectors
-- Stores minimal identifiers (`block_id`, `page_id`, `source_id`) for reverse lookup of metadata in Postgres
+- Text index for BM25 search
+- Vector index for kNN search (HNSW, cosine, 1024-dim)
+- Auto-created on startup via `ElasticsearchIndexService.@PostConstruct`
+
+### Redis (Redisson)
+- Distributed locking for source sync (`source-sync:<sourceId>`)
 
 ### RabbitMQ
-- Task/result queues for scrapper, DLQ with retry counter
-- Messages carry `userId` + `sourceId` for validation and routing
-
-### Redis
-- Cache by key `(userId, sourceId, normalizedQuery, mode)`
-- Rate limiting by `userId` via `user` module (IP fallback before cookie is issued)
-
-### Google GenAI (via Spring AI)
-- RAG answer generation from top-K source snippets
+- Configured: `RabbitConverterConfiguration` (JSON message converter), `RabbitRetryBackOffConfiguration` (retry policy)
+- Not yet wired to scrapper service (AskScrapperService is interface only)
 
 ## Cross-Cutting Concerns
 
-- **Resilience**: Spring Retry for ask-search HTTP calls; RabbitMQ DLQ for scrapper failures
-- **Module events**: Spring Modulith application events for inter-module communication (e.g., source synced triggers reindex)
-- **Observability**: Spring Boot Actuator + Prometheus metrics export
+- **Async**: `AsyncConfiguration` provides `AsyncTaskExecutor` (used by `AutoSyncManager`)
+- **Retry**: `RetryableConfiguration` enables Spring Retry
+- **Module events**: Spring Modulith application events for inter-module communication
+- **Observability**: Spring Boot Actuator + Prometheus metrics export (dependencies configured)
 - **Validation**: `spring-boot-starter-validation` on API request DTOs
-- **Deployment**: Kubernetes with 2 replicas per module, load balancing via K8s services

@@ -2,6 +2,8 @@ package ru.askorium.core.source.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -10,7 +12,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
-import ru.askorium.api.client.model.DocumentDescriptionSourceType;
+import ru.askorium.api.model.DocumentDescriptionSourceType;
 import ru.askorium.core.common.BaseEntity;
 
 @Data
@@ -40,6 +42,7 @@ public class PageDocumentEntity extends BaseEntity {
     @Column(name = "description")
     private String description;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "description_source")
     private DocumentDescriptionSourceType descriptionSource;
 

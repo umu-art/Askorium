@@ -3,12 +3,13 @@ package ru.askorium.core.common.config;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import org.springframework.stereotype.Component;
+
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
-import org.springframework.stereotype.Component;
 
 @Component
 public class CustomOffsetDateTimeDeserializer extends JsonDeserializer<OffsetDateTime> {

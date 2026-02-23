@@ -33,7 +33,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     private final UserJpa userJpa;
 
     @Override
-    @Transactional
+    @Transactional(transactionManager = "userTransactionManager")
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,

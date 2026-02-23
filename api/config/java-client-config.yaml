@@ -1,12 +1,12 @@
 generatorName: java
 
 additionalProperties:
-  artifactId: ask-api-client
+  artifactId: ask-api
   groupId: ru.askorium
 
-  basePackage: ru.askorium.api.client
+  basePackage: ru.askorium.api
   invokerPackage: ru.askorium.api.client
-  modelPackage: ru.askorium.api.client.model
+  modelPackage: ru.askorium.api.model
   apiPackage: ru.askorium.api.client
 
   generateBuilders: true
@@ -16,7 +16,6 @@ additionalProperties:
 
 globalProperties:
   supportingFiles:
-    - pom.xml
     - ApiClient.java
     - BaseApi.java
     - JavaTimeFormatter.java
@@ -25,7 +24,6 @@ globalProperties:
     - RFC3339JavaTimeModule.java
     - Authentication.java
 
-  models: ''
   apis: ''
 
   modelTests: false

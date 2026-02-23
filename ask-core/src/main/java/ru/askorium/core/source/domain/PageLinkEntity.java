@@ -2,6 +2,8 @@ package ru.askorium.core.source.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -10,10 +12,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
-import ru.askorium.api.client.model.LinkType;
+import ru.askorium.api.model.LinkType;
 import ru.askorium.core.common.BaseEntity;
 
-import java.util.Objects;
 import java.util.UUID;
 
 @Data
@@ -34,6 +35,7 @@ public class PageLinkEntity extends BaseEntity {
     @Column(name = "href", nullable = false)
     private String href;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
     private LinkType type;
 
