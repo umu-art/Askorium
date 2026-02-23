@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.3
 
 info:
   title: Scrapper Api
@@ -18,31 +18,98 @@ paths:
           content:
             application/json:
               schema:
-                anyOf:
-                  - $ref: '#/components/schemas/ScrapperRequest'
-                  - $ref: '#/components/schemas/ScrapperResult'
+                oneOf:
+                  - $ref: '#/components/schemas/ScrapeRequest'
+                  - $ref: '#/components/schemas/ScrapeResponse'
 
 components:
   schemas:
-    ScrapperRequest:
+    ScrapeRequest:
       type: object
-      description: Запрос на скраппинг страницы, отправляется как json в очередь RabbitMQ.
       required:
+        - task_id
         - url
       properties:
+        task_id:
+          type: string
+          format: uuid
+          description: Уникальный идентификатор задачи
         url:
           type: string
-          description: URL страницы для скрапинга.
+          format: uri
+          description: URL для парсинга
+        options:
+          $ref: '#/components/schemas/ScrapeOptions'
+        metadata:
+          type: object
+          description: Сквозные данные, возвращаются без изменений
+          additionalProperties: true
 
-    ScrapperResult:
+    ScrapeOptions:
       type: object
-      description: Результат скраппинга страницы, получается как json из очереди RabbitMQ после обработки.
-      required:
-        - page
       properties:
+        timeout_ms:
+          type: integer
+          default: 30000
+          description: Таймаут загрузки страницы (миллисекунды)
+        max_retries:
+          type: integer
+          default: 3
+          description: Максимальное количество повторных попыток
+        extract_links:
+          type: boolean
+          default: false
+        extract_documents:
+          type: boolean
+          default: false
+
+    # ==================== Ответ (Scrapper -> Core) ====================
+
+    ScrapeResponse:
+      type: object
+      required:
+        - task_id
+        - success
+      properties:
+        task_id:
+          type: string
+          format: uuid
+        success:
+          type: boolean
+          description: Итоговый результат выполнения
         page:
-          $ref: '#/components/schemas/ScrappedPage'
-          description: Структурированные данные, извлечённые со страницы.
+          description: Возвращается при успехе
+          allOf:
+            - $ref: '#/components/schemas/ScrappedPage'
+        error:
+          description: Возвращается при ошибке
+          allOf:
+            - $ref: '#/components/schemas/ScrapeError'
+        metadata:
+          type: object
+          additionalProperties: true
+
+    ScrapeError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+
+    ErrorCode:
+      type: string
+      enum:
+        - TIMEOUT
+        - NETWORK_ERROR
+        - RATE_LIMITED
+        - PAGE_NOT_FOUND
+        - ACCESS_DENIED
+        - INVALID_URL
+        - PARSE_ERROR
 
     ScrappedPage:
       type: object
@@ -98,8 +165,9 @@ components:
         htmlId:
           type: string
         type:
-          $ref: '#/components/schemas/ContentBlockType'
           description: Тип блока.
+          allOf:
+            - $ref: '#/components/schemas/ContentBlockType'
         headingLevel:
           type: integer
           minimum: 1
@@ -121,8 +189,9 @@ components:
           type: string
           description: Целевой URL ссылки.
         type:
-          $ref: '#/components/schemas/LinkType'
           description: Внутренняя (внутри домена) или внешняя ссылка.
+          allOf:
+            - $ref: '#/components/schemas/LinkType'
         anchorText:
           type: string
           description: Текст анкера (если есть).
@@ -158,8 +227,9 @@ components:
           type: string
           description: Короткое текстовое описание (alt, caption или сгенерированное моделью).
         descriptionSource:
-          $ref: '#/components/schemas/DocumentDescriptionSourceType'
           description: Источник описания.
+          allOf:
+            - $ref: '#/components/schemas/DocumentDescriptionSourceType'
 
     ContentBlockType:
       type: string
