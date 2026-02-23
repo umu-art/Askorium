@@ -4,6 +4,8 @@ import io.temporal.spring.boot.ActivityImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.CollectionUtils;
 import ru.askorium.api.model.RerankBlock;
 import ru.askorium.api.model.RerankResult;
 import ru.askorium.core.ask_encoder_api.AskEncoderService;
@@ -32,6 +34,14 @@ public class RerankActivityImpl extends AbstractQueryActivity implements RerankA
 
     @Override
     protected void doWithQuery(QueryEntity query) {
+        if (StringUtils.isBlank(query.getNormalizedQuery())) {
+            throw new IllegalStateException("Normalized query is not generated");
+        }
+
+        if (CollectionUtils.isEmpty(query.getSources())) {
+            throw new IllegalStateException("Sources are not retrieved");
+        }
+
         var params = searchProperties.forMode(query.getMode());
 
         var topSources = query.getSources().stream()

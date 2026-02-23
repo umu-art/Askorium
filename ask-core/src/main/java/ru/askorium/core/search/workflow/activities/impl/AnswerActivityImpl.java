@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.CollectionUtils;
 import ru.askorium.api.model.SearchMode;
 import ru.askorium.core.search.domain.QueryEntity;
 import ru.askorium.core.search.domain.QuerySourceEntity;
@@ -31,6 +33,14 @@ public class AnswerActivityImpl extends AbstractQueryActivity implements AnswerA
     protected void doWithQuery(QueryEntity query) {
         if (!SearchMode.DEEP.equals(query.getMode())) {
             return;
+        }
+
+        if (StringUtils.isBlank(query.getNormalizedQuery())) {
+            throw new IllegalStateException("Normalized query is not generated");
+        }
+
+        if (CollectionUtils.isEmpty(query.getSources())) {
+            throw new IllegalStateException("Sources are not retrieved");
         }
 
         var context = query.getSources().stream()

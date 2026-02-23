@@ -4,6 +4,7 @@ import io.temporal.spring.boot.ActivityImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.apache.commons.lang3.StringUtils;
 import ru.askorium.core.search.domain.QueryEntity;
 import ru.askorium.core.search.workflow.activities.NormalizationActivity;
 import ru.askorium.core.text_processing.TextProcessingService;
@@ -25,6 +26,10 @@ public class NormalizationActivityImpl extends AbstractQueryActivity implements 
 
     @Override
     protected void doWithQuery(QueryEntity query) {
+        if (StringUtils.isBlank(query.getQuery())) {
+            throw new IllegalStateException("Query is blank");
+        }
+
         var text = query.getQuery();
         var normalizedText = textProcessingService.normalizeText(text);
         query.setNormalizedQuery(normalizedText);

@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import ru.askorium.core.user.config.interceptors.AuthenticationFilter;
+import ru.askorium.core.user.config.interceptors.RateLimitFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -16,6 +17,7 @@ import ru.askorium.core.user.config.interceptors.AuthenticationFilter;
 public class SecurityConfiguration {
 
     private final AuthenticationFilter authenticationFilter;
+    private final RateLimitFilter rateLimitFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -28,7 +30,8 @@ public class SecurityConfiguration {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
                 .rememberMe(AbstractHttpConfigurer::disable)
-                .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(rateLimitFilter, AuthenticationFilter.class);
 
         return http.build();
     }

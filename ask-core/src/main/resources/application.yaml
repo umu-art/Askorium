@@ -27,6 +27,10 @@ askorium:
     hnsw-m: 16
     hnsw-ef-construction: 100
 
+  user:
+    rate-limit:
+      requests-per-minute: 60
+
   search:
     modes:
       FAST:

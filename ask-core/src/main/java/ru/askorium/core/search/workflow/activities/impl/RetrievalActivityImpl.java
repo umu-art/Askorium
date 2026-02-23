@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import ru.askorium.core.index.IndexService;
 import ru.askorium.core.index.IndexText;
 import ru.askorium.core.index.IndexVector;
@@ -38,6 +39,14 @@ public class RetrievalActivityImpl extends AbstractQueryActivity implements Retr
 
     @Override
     protected void doWithQuery(QueryEntity query) {
+        if (CollectionUtils.isEmpty(query.getQueryVector())) {
+            throw new IllegalStateException("Query vector is not generated");
+        }
+
+        if (StringUtils.isBlank(query.getNormalizedQuery())) {
+            throw new IllegalStateException("Normalized query is not generated");
+        }
+
         var params = searchProperties.forMode(query.getMode());
 
         var bm25Results = indexService.searchBM25(query.getNormalizedQuery(), params.getBm25Size());
