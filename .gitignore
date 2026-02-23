@@ -10,3 +10,5 @@ venv
 *.iml
 
 .env
+
+api/build

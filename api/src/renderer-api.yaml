@@ -1,0 +1,133 @@
+openapi: 3.0.3
+
+info:
+  title: Renderer Api
+  description: API для рендеринга страниц через Playwright.
+  version: 1.0.0
+
+paths:
+  /render:
+    post:
+      tags:
+        - renderer
+      operationId: renderPage
+      summary: Рендеринг страницы и получение HTML.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenderRequest'
+      responses:
+        200:
+          description: Успешный рендеринг
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderResponse'
+        400:
+          description: Невалидный URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderErrorResponse'
+        403:
+          description: Доступ запрещён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderErrorResponse'
+        404:
+          description: Страница не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderErrorResponse'
+        502:
+          description: Ошибка сети
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderErrorResponse'
+        504:
+          description: Таймаут
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderErrorResponse'
+
+  /health:
+    get:
+      tags:
+        - renderer
+      operationId: healthCheck
+      summary: Проверка состояния сервиса.
+      responses:
+        200:
+          description: Сервис работает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  schemas:
+    RenderRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: URL страницы для рендеринга
+        timeout_ms:
+          type: integer
+          default: 15000
+          minimum: 1000
+          maximum: 60000
+          description: Таймаут загрузки страницы (миллисекунды)
+
+    RenderResponse:
+      type: object
+      required:
+        - html
+        - elapsed_ms
+      properties:
+        html:
+          type: string
+          description: HTML-содержимое страницы после рендеринга
+        elapsed_ms:
+          type: integer
+          description: Время рендеринга в миллисекундах
+
+    RenderErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          $ref: '#/components/schemas/RenderErrorCode'
+        message:
+          type: string
+          description: Описание ошибки
+
+    RenderErrorCode:
+      type: string
+      enum:
+        - TIMEOUT
+        - NETWORK_ERROR
+        - PAGE_NOT_FOUND
+        - ACCESS_DENIED
+        - INVALID_URL
+        - PARSE_ERROR
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: ok
