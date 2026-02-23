@@ -14,7 +14,6 @@ import ru.askorium.core.search.workflow.activities.RetrievalActivity;
 import java.time.Duration;
 import java.util.UUID;
 
-@Component
 @WorkflowImpl(taskQueues = "askorium-search")
 public class SearchWorkflowImpl implements SearchWorkflow {
 

@@ -12,6 +12,8 @@ import ru.askorium.api.model.ScrappedPage;
 import ru.askorium.api.model.SourceSyncRequest;
 import ru.askorium.core.ask_scrapper_api.AskScrapperService;
 import ru.askorium.core.common.ObjectCompareUtils;
+import ru.askorium.core.common.UrlUtils;
+import ru.askorium.core.exception.BadUrlException;
 import ru.askorium.core.source.domain.PageEntity;
 import ru.askorium.core.source.jpa.PageJpa;
 import ru.askorium.core.source.jpa.SourceJpa;
@@ -69,6 +71,7 @@ public class SourceSyncService {
         var scrappedPages = askScrapperService.scrapSource(source.getSourceUrl());
 
         normalizeTexts(scrappedPages);
+        normalizeUrls(scrappedPages);
 
         log.debug("Scrapped {} pages for source {}", scrappedPages.size(), source.getSourceUrl());
 
@@ -114,6 +117,43 @@ public class SourceSyncService {
 
         log.info("Sync completed for source {}. Scraped {} pages, removed {} stale.",
                 sourceId, scrappedPages.size(), stalePages.size());
+    }
+
+    private void normalizeUrls(List<ScrappedPage> pages) {
+        pages.removeIf(page -> {
+            try {
+                page.setUrl(UrlUtils.normalizeUrl(page.getUrl()));
+            } catch (BadUrlException e) {
+                log.warn("Bad page URL, skipping: {}", page.getUrl());
+                return true;
+            }
+
+            if (page.getLinks() != null) {
+                page.getLinks().removeIf(link -> {
+                    try {
+                        link.setHref(UrlUtils.normalizeUrl(link.getHref()));
+                        return false;
+                    } catch (BadUrlException e) {
+                        log.warn("Bad link URL, skipping: {}", link.getHref());
+                        return true;
+                    }
+                });
+            }
+
+            if (page.getDocuments() != null) {
+                page.getDocuments().removeIf(doc -> {
+                    try {
+                        doc.setUrl(UrlUtils.normalizeUrl(doc.getUrl()));
+                        return false;
+                    } catch (BadUrlException e) {
+                        log.warn("Bad doc URL, skipping: {}", doc.getUrl());
+                        return true;
+                    }
+                });
+            }
+
+            return false;
+        });
     }
 
     private void normalizeTexts(List<ScrappedPage> scrappedPages) {

@@ -1,12 +1,12 @@
 package ru.askorium.core.common;
 
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.client.RequestCallback;
@@ -71,7 +71,7 @@ public class RestTemplateFactory {
 
     private static class RepeatableRestTemplate extends RestTemplate {
         @Override
-        protected <T> T doExecute(@NotNull URI url, String uriTemplate, HttpMethod method, RequestCallback requestCallback, ResponseExtractor<T> responseExtractor) throws RestClientException {
+        protected <T> T doExecute(@NonNull URI url, String uriTemplate, HttpMethod method, RequestCallback requestCallback, ResponseExtractor<T> responseExtractor) throws RestClientException {
             for (int i = 0; i < 3; i++) {
                 try {
                     return super.doExecute(url, uriTemplate, method, requestCallback, responseExtractor);

@@ -8,15 +8,12 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
-import ru.askorium.core.user.domain.UserEntity;
-import ru.askorium.core.user.jpa.UserJpa;
+import ru.askorium.core.user.service.UserService;
 
 import java.io.IOException;
-import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -30,51 +27,36 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     private static final String COOKIE_NAME = "ask_uid";
     private static final int MAX_AGE_SECONDS = 315_360_000; // ~10 years
 
-    private final UserJpa userJpa;
+    private final UserService userService;
 
     @Override
-    @Transactional(transactionManager = "userTransactionManager")
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        var needSetCookie = false;
-        UUID userId = null;
-
-        var cookieUid = readCookieUid(request);
-        if (cookieUid != null) {
-            var userOpt = userJpa.findById(cookieUid);
-            if (userOpt.isPresent()) {
-                var user = userOpt.get();
-                user.setLastSeenAt(OffsetDateTime.now());
-                user.setLastSeenIp(resolveClientIp(request));
-                userJpa.save(user);
-                userId = user.getId();
-            }
+        if (!request.getRequestURI().startsWith("/ask/")) {
+            filterChain.doFilter(request, response);
+            return;
         }
 
-        if (userId == null) {
-            var user = new UserEntity();
-            user.setLastSeenAt(OffsetDateTime.now());
-            user.setLastSeenIp(resolveClientIp(request));
-            user.setFirstVisitUserAgent(request.getHeader("User-Agent"));
-            user.setFirstVisitHeaders(collectHeaders(request));
-            user = userJpa.save(user);
-            userId = user.getId();
-            needSetCookie = true;
+        var resolution = userService.resolveOrCreate(
+                readCookieUid(request),
+                resolveClientIp(request),
+                request.getHeader("User-Agent"),
+                collectParams(request)
+        );
+
+        if (resolution.isNew()) {
+            response.addHeader("Set-Cookie",
+                    COOKIE_NAME + "=" + resolution.userId()
+                            + "; HttpOnly; Path=/; Max-Age=" + MAX_AGE_SECONDS);
         }
 
-        setUserIdToContext(userId);
+        setUserIdToContext(resolution.userId());
 
         filterChain.doFilter(request, response);
-
-        if (needSetCookie) {
-            response.addHeader("Set-Cookie",
-                    COOKIE_NAME + "=" + userId
-                            + "; HttpOnly; Secure; Path=/; Max-Age=" + MAX_AGE_SECONDS);
-        }
     }
 
     private UUID readCookieUid(HttpServletRequest request) {
@@ -105,7 +87,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         return request.getRemoteAddr();
     }
 
-    private String collectHeaders(HttpServletRequest request) {
+    private String collectParams(HttpServletRequest request) {
         return request.getParameterMap()
                 .entrySet()
                 .stream()

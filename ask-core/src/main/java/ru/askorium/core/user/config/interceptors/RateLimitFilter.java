@@ -31,6 +31,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
+        if (!request.getRequestURI().startsWith("/ask/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         var userId = getUserId();
 
         var limiter = redissonClient.getRateLimiter("rate-limit:user:" + userId);

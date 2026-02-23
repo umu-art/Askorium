@@ -19,7 +19,7 @@ create table if not exists sources
     updated    timestamp(6) with time zone,
     source_url varchar(2048)                                          not null,
     constraint pk_sources primary key (id),
-    constraint uk_sources_user_id_source_url unique (source_url)
+    constraint uk_sources_source_url unique (source_url)
 );
 
 create table if not exists source_sync_policies
@@ -78,7 +78,7 @@ create table if not exists page_links
     block_id   uuid,
     href       varchar(2048)                                          not null,
     type       varchar(20)                                            not null,
-    anchorText text,
+    anchor_text text,
     snippet    text,
     position   integer                                                not null,
     constraint pk_page_links primary key (id),

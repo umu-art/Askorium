@@ -9,6 +9,7 @@ import ru.askorium.api.model.SourceSyncRequest;
 import ru.askorium.api.server.SourceApi;
 import ru.askorium.core.source.domain.SourceEntity;
 import ru.askorium.core.source.jpa.SourceJpa;
+import ru.askorium.core.common.UrlUtils;
 import ru.askorium.core.source.mapper.SourceMapper;
 import ru.askorium.core.source.sync.AutoSyncManager;
 import ru.askorium.core.source.sync.SourceSyncService;
@@ -45,10 +46,13 @@ public class SourceController implements SourceApi {
             entity = sourceJpa.findById(source.getId())
                     .orElseThrow(() -> new RuntimeException("Source not found with id: " + source.getId()));
         } else {
-            entity = new SourceEntity();
+            entity = sourceJpa.findBySourceUrl(source.getSourceUrl())
+                    .orElse(new SourceEntity());
         }
 
         sourceMapper.updateEntityFromDto(entity, source);
+        entity.setSourceUrl(UrlUtils.normalizeUrl(entity.getSourceUrl()));
+        entity.getSyncPolicy().setSource(entity);
         entity = sourceJpa.save(entity);
 
         return ResponseEntity.ok(sourceMapper.toDto(entity));

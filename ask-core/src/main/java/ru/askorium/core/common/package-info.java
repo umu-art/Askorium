@@ -1,4 +1,4 @@
 @org.springframework.modulith.ApplicationModule(
-        allowedDependencies = {}
+        allowedDependencies = {"exception"}
 )
 package ru.askorium.core.common;

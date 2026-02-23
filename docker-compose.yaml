@@ -1,0 +1,77 @@
+#  ┌───────────────────┬──────────────┬───────────────────────────────────────┐
+#  │      Service      │     Port     │                 Notes                 │
+#  ├───────────────────┼──────────────┼───────────────────────────────────────┤
+#  │ postgres          │ 5432         │ App database                          │
+#  ├───────────────────┼──────────────┼───────────────────────────────────────┤
+#  │ postgres-temporal │ 5433         │ Temporal's dedicated DB               │
+#  ├───────────────────┼──────────────┼───────────────────────────────────────┤
+#  │ redis             │ 6379         │                                       │
+#  ├───────────────────┼──────────────┼───────────────────────────────────────┤
+#  │ rabbitmq          │ 5672 / 15672 │ Management UI at :15672 (guest/guest) │
+#  ├───────────────────┼──────────────┼───────────────────────────────────────┤
+#  │ elasticsearch     │ 9200         │ Security disabled, 512m heap          │
+#  ├───────────────────┼──────────────┼───────────────────────────────────────┤
+#  │ temporal          │ 7233         │ Connects to postgres-temporal         │
+#  ├───────────────────┼──────────────┼───────────────────────────────────────┤
+#  │ temporal-ui       │ 8233         │                                       │
+#  └───────────────────┴──────────────┴───────────────────────────────────────┘
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  elasticsearch:
+    image: elastic/elasticsearch:8.19.11
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+
+  postgres-temporal:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: temporal
+
+  temporal:
+    image: temporalio/auto-setup:1.29
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PWD=postgres
+      - POSTGRES_SEEDS=postgres-temporal
+      - BIND_ON_IP=0.0.0.0
+    ports:
+      - "7233:7233"
+    depends_on:
+      - postgres-temporal
+
+  temporal-ui:
+    image: temporalio/ui:2.45.4
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+    ports:
+      - "8233:8080"
+    depends_on:
+      - temporal

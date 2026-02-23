@@ -39,7 +39,7 @@ public class SourcesModuleConfig {
 
         return builder
                 .dataSource(factory.createByName("sources"))
-                .packages("ru.askorium.core.sources.domain")
+                .packages("ru.askorium.core.source.domain")
                 .persistenceUnit("sources")
                 .build();
     }
