@@ -1,8 +1,8 @@
 generatorName: go
-outputDir: build/scrapper-model
+outputDir: build/renderer-model
 
 additionalProperties:
-  packageName: scrapper_model
+  packageName: renderer_model
   packageVersion: 1.0.0
   isGoSubmodule: true
   enumClassPrefix: true
@@ -10,12 +10,16 @@ additionalProperties:
   withXml: false
   generateGoMod: false
   generateReadme: false
+  generateInterfaces: true
 
 globalProperties:
   models: ''
-  apis: false
+  apis: ''
   supportingFiles:
     - utils.go
+    - client.go
+    - configuration.go
+    - response.go
   modelTests: false
   apiTests: false
   modelDocs: false
