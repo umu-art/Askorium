@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: 3.1.0
 
 info:
   title: Renderer Api
@@ -56,20 +56,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/RenderErrorResponse'
 
-  /health:
-    get:
-      tags:
-        - renderer
-      operationId: healthCheck
-      summary: Проверка состояния сервиса.
-      responses:
-        200:
-          description: Сервис работает
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
-
 components:
   schemas:
     RenderRequest:
@@ -122,12 +108,3 @@ components:
         - ACCESS_DENIED
         - INVALID_URL
         - PARSE_ERROR
-
-    HealthResponse:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          example: ok
