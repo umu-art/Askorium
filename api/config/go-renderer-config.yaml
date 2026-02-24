@@ -1,0 +1,22 @@
+generatorName: go
+outputDir: build/scrapper-model
+
+additionalProperties:
+  packageName: scrapper_model
+  packageVersion: 1.0.0
+  isGoSubmodule: true
+  enumClassPrefix: true
+  structPrefix: true
+  withXml: false
+  generateGoMod: false
+  generateReadme: false
+
+globalProperties:
+  models: ''
+  apis: false
+  supportingFiles:
+    - utils.go
+  modelTests: false
+  apiTests: false
+  modelDocs: false
+  apiDocs: false
