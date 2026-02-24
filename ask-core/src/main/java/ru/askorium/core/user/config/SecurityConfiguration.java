@@ -22,7 +22,7 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable) // TODO: fix
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(AbstractHttpConfigurer::disable)
                 .securityContext(AbstractHttpConfigurer::disable)
                 .requestCache(AbstractHttpConfigurer::disable)

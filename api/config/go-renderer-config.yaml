@@ -1,5 +1,7 @@
+sources:
+  - renderer-api.yaml
+target: go-renderer-api
 generatorName: go
-outputDir: build/renderer-model
 
 additionalProperties:
   packageName: renderer_model

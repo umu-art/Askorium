@@ -1,5 +1,7 @@
+sources:
+  - scrapper-api.yaml
+target: go-scrapper-api
 generatorName: go
-outputDir: build/scrapper-model
 
 additionalProperties:
   packageName: scrapper_model
