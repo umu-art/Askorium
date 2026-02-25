@@ -77,12 +77,10 @@ components:
           description: Итоговый результат выполнения
         page:
           description: Возвращается при успехе
-          allOf:
-            - $ref: '#/components/schemas/ScrappedPage'
+          $ref: '#/components/schemas/ScrappedPage'
         error:
           description: Возвращается при ошибке
-          allOf:
-            - $ref: '#/components/schemas/ScrapeError'
+          $ref: '#/components/schemas/ScrapeError'
         metadata:
           type: object
           additionalProperties: true
@@ -164,8 +162,7 @@ components:
           type: string
         type:
           description: Тип блока.
-          allOf:
-            - $ref: '#/components/schemas/ContentBlockType'
+          $ref: '#/components/schemas/ContentBlockType'
         headingLevel:
           type: integer
           minimum: 1
@@ -188,8 +185,7 @@ components:
           description: Целевой URL ссылки.
         type:
           description: Внутренняя (внутри домена) или внешняя ссылка.
-          allOf:
-            - $ref: '#/components/schemas/LinkType'
+          $ref: '#/components/schemas/LinkType'
         anchorText:
           type: string
           description: Текст анкера (если есть).
@@ -226,8 +222,7 @@ components:
           description: Короткое текстовое описание (alt, caption или сгенерированное моделью).
         descriptionSource:
           description: Источник описания.
-          allOf:
-            - $ref: '#/components/schemas/DocumentDescriptionSourceType'
+          $ref: '#/components/schemas/DocumentDescriptionSourceType'
 
     ContentBlockType:
       type: string
