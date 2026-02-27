@@ -1,0 +1,31 @@
+name: "ArgoCD Sync"
+description: "Sync ArgoCD applications and wait for healthy status"
+
+inputs:
+  argocd-server:
+    description: "ArgoCD url"
+    required: true
+  argocd-token:
+    description: "Токен ArgoCD"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Sync ArgoCD applications
+      uses: clowdhaus/argo-cd-action@v2
+      with:
+        version: 2.6.7
+        options: --server ${{ inputs.argocd-server }} --grpc-web --auth-token ${{ inputs.argocd-token }}
+        command: app sync -l app.kubernetes.io/instance=askorium --prune --timeout 600
+
+    - name: Sleep for 10 seconds
+      shell: bash
+      run: sleep 10
+
+    - name: Wait for ArgoCD health
+      uses: clowdhaus/argo-cd-action@v2
+      with:
+        version: 2.6.7
+        options: --server ${{ inputs.argocd-server }} --grpc-web --auth-token ${{ inputs.argocd-token }}
+        command: app wait -l app.kubernetes.io/instance=askorium --health --timeout 600

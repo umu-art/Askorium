@@ -1,0 +1,57 @@
+name: Build module
+
+on:
+  workflow_call:
+    inputs:
+      module:
+        description: "Имя модуля (имя образа и ArgoCD-приложения)"
+        type: string
+        required: true
+      script:
+        description: "Среда (java, python, go, node)"
+        type: string
+        required: true
+      test-only:
+        description: "Только тесты, без сборки образа и деплоя (true на PR)"
+        type: string
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare environment
+        uses: ./.github/workflows/actions/prepare_env
+
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            changed:
+              - '${{ inputs.module }}/**'
+              - 'api/**'
+              - 'iac/images/${{ inputs.module }}/**'
+
+      - name: Run tests and build
+        if: steps.filter.outputs.changed == 'true'
+        uses: ./.github/workflows/actions/scripts
+        with:
+          script: ${{ inputs.script }}
+          module: ${{ inputs.module }}
+          test-only: ${{ inputs.test-only }}
+
+      - name: Build Docker image
+        if: steps.filter.outputs.changed == 'true' && inputs.test-only != 'true'
+        uses: ./.github/workflows/actions/build_image
+        with:
+          image: ${{ inputs.module }}
+          actor: umu-art
+          token: ${{ secrets.PACKAGES_TOKEN }}
+
+      - name: Deploy to stand
+        if: steps.filter.outputs.changed == 'true' && inputs.test-only != 'true'
+        uses: ./.github/workflows/actions/deploy_to_stand
+        with:
+          kubesecret: ${{ secrets.KUBESECRET }}
+          module-name: ${{ inputs.module }}

@@ -1,0 +1,60 @@
+name: Assembling this whole mess
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  TEST_ONLY: ${{ github.ref != 'refs/heads/main' || github.event_name != 'push' }}
+
+jobs:
+  build:
+    name: Build (${{ matrix.module }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: ask-core
+            script: java
+
+          - module: ask-encoder
+            script: python
+
+          - module: ask-scrapper
+            script: go
+
+          - module: ask-ui
+            script: node
+
+    uses: ./.github/workflows/_build-module.yml
+    with:
+      module: ${{ matrix.module }}
+      script: ${{ matrix.script }}
+      test-only: ${{ env.TEST_ONLY }}
+    secrets: inherit
+
+  sync-iac:
+    name: Sync IaC (ArgoCD)
+    runs-on: ubuntu-latest
+    if: env.TEST_ONLY == 'false'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect IaC changes
+        id: iac
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            iac:
+              - 'iac/**'
+
+      - name: Sync
+        if: steps.iac.outputs.iac == 'true'
+        uses: ./.github/workflows/actions/argo_sync
+        with:
+          argocd-server: ${{ secrets.ARGOCD_SERVER }}
+          argocd-token: ${{ secrets.ARGOCD_TOKEN }}

@@ -1,0 +1,67 @@
+name: "Test and build"
+description: "Run tests and build for the given runtime (java, python, go, node)"
+
+inputs:
+  script:
+    description: "Среда (java, python, go, node)"
+    required: true
+  module:
+    description: "Имя модуля"
+    required: true
+  test-only:
+    description: "Только тесты, без сборки (true на PR)"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    # --- Java ---
+    - name: Test (Java)
+      if: inputs.script == 'java'
+      shell: bash
+      working-directory: ${{ inputs.module }}
+      run: mvn test
+
+    - name: Build (Java)
+      if: inputs.script == 'java' && inputs.test-only != 'true'
+      shell: bash
+      working-directory: ${{ inputs.module }}
+      run: mvn package -DskipTests
+
+    # --- Python ---
+    - name: Install dependencies (Python)
+      if: inputs.script == 'python'
+      shell: bash
+      run: pip install -r ${{ inputs.module }}/requirements.txt
+
+    - name: Test (Python)
+      if: inputs.script == 'python'
+      shell: bash
+      working-directory: ${{ inputs.module }}
+      run: python -m pytest
+
+    # --- Go ---
+    - name: Test (Go)
+      if: inputs.script == 'go'
+      shell: bash
+      working-directory: ${{ inputs.module }}
+      run: go test ./...
+
+    - name: Build (Go)
+      if: inputs.script == 'go' && inputs.test-only != 'true'
+      shell: bash
+      working-directory: ${{ inputs.module }}
+      run: go build -o ${{ inputs.module }} .
+
+    # --- Node ---
+    - name: Test (Node)
+      if: inputs.script == 'node'
+      shell: bash
+      working-directory: ${{ inputs.module }}
+      run: npm test
+
+    - name: Build (Node)
+      if: inputs.script == 'node' && inputs.test-only != 'true'
+      shell: bash
+      working-directory: ${{ inputs.module }}
+      run: npm run build

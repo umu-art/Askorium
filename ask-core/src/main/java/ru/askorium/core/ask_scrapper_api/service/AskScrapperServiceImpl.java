@@ -5,8 +5,8 @@ import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
+import ru.askorium.api.model.ScrapeResponse;
 import ru.askorium.api.model.ScrappedPage;
-import ru.askorium.api.model.ScrapperResult;
 import ru.askorium.core.ask_scrapper_api.AskScrapperService;
 import ru.askorium.core.ask_scrapper_api.config.AmqpProperties;
 
@@ -26,6 +26,6 @@ public class AskScrapperServiceImpl implements AskScrapperService {
     }
 
     @RabbitListener(queues = "${askorium.amqp.scrapped-pages-queue}")
-    public void handleScrappedPage(ScrapperResult scrapperResult) {
+    public void handleScrappedPage(ScrapeResponse scrapeResponse) {
     }
 }

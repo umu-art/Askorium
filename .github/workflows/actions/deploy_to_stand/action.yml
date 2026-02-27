@@ -1,5 +1,5 @@
 name: "Deploy to stand"
-description: "Доставка образа на стенд, синхронизация и ожидание успешного запуска"
+description: "Apply new image to the stand via kubectl rollout restart"
 
 inputs:
   kubesecret:
@@ -8,15 +8,6 @@ inputs:
   module-name:
     description: "Модуль для синхронизации"
     required: true
-  argocd-server:
-    description: "ArgoCD url"
-    required: true
-  argocd-token:
-    description: "Токен ArgoCD"
-    required: true
-  deployment:
-    description: "Наличие деплоймента"
-    default: true
 
 runs:
   using: "composite"
@@ -31,20 +22,3 @@ runs:
       if: inputs.deployment != 'false'
       shell: bash
       run: kubectl rollout restart deployment/${{ inputs.module-name }} -n askorium
-
-    - uses: clowdhaus/argo-cd-action@v2
-      with:
-        version: 2.6.7
-        options: --server ${{ inputs.argocd-server }} --grpc-web --auth-token ${{ inputs.argocd-token }}
-        command: app sync ${{ inputs.module-name }} --prune --timeout 600
-
-    - name: Sleep for 10 seconds
-      shell: bash
-      run: sleep 10
-
-    - uses: clowdhaus/argo-cd-action@v2
-      with:
-        version: 2.6.7
-        options: --server ${{ inputs.argocd-server }} --grpc-web --auth-token ${{ inputs.argocd-token }}
-        command: app wait ${{ inputs.module-name }} --health --timeout 600
-

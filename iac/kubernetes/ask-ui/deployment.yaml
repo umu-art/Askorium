@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ask-ui
+  namespace: askorium
+  labels:
+    app: ask-ui
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ask-ui
+  template:
+    metadata:
+      labels:
+        app: ask-ui
+    spec:
+      containers:
+        - name: ask-ui
+          image: ghcr.io/umu-art/ask-ui:latest
+          ports:
+            - name: http
+              containerPort: 80
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"

@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: askorium
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: askorium
+    server: https://kubernetes.default.svc
+  source:
+    path: iac/argo
+    repoURL: https://github.com/umu-art/askorium
+    targetRevision: HEAD
+  project: askorium
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

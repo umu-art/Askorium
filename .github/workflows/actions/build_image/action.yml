@@ -1,5 +1,5 @@
-name: "Build image"
-description: "Сборка docker image"
+name: "Build and push image"
+description: "Build and push Docker image to GHCR"
 
 inputs:
   image:

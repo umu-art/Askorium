@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ask-ui
+  namespace: askorium
+  labels:
+    app: ask-ui
+spec:
+  selector:
+    app: ask-ui
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP

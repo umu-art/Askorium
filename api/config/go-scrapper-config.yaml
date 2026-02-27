@@ -18,6 +18,7 @@ globalProperties:
   apis: false
   supportingFiles:
     - utils.go
+    - go.mod
   modelTests: false
   apiTests: false
   modelDocs: false

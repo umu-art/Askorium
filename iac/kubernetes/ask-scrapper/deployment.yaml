@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ask-scrapper
+  namespace: askorium
+  labels:
+    app: ask-scrapper
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ask-scrapper
+  template:
+    metadata:
+      labels:
+        app: ask-scrapper
+    spec:
+      containers:
+        - name: ask-scrapper
+          image: ghcr.io/umu-art/ask-scrapper:latest
+          envFrom:
+            - secretRef:
+                name: ask-scrapper
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"

@@ -22,6 +22,7 @@ globalProperties:
     - client.go
     - configuration.go
     - response.go
+    - go.mod
   modelTests: false
   apiTests: false
   modelDocs: false

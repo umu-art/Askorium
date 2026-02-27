@@ -1,0 +1,17 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ask-ui-route
+  namespace: askorium
+spec:
+  parentRefs:
+    - name: askorium-gateway
+      namespace: istio-system
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: ask-ui
+          port: 80
