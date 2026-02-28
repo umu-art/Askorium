@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [ main ]
 
-env:
-  TEST_ONLY: ${{ github.ref != 'refs/heads/main' || github.event_name != 'push' }}
-
 jobs:
   build:
     name: Build (${{ matrix.module }})
@@ -38,7 +35,7 @@ jobs:
   sync-iac:
     name: Sync IaC (ArgoCD)
     runs-on: ubuntu-latest
-    if: env.TEST_ONLY == 'false'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'push'
 
     steps:
       - name: Checkout code
