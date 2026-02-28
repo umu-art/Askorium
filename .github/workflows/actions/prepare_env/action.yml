@@ -22,7 +22,7 @@ runs:
 
     - name: Install python libs
       shell: bash
-      run: pip install pyyaml build setuptools wheel
+      run: pip install pyyaml build setuptools wheel pytest
 
     - name: Set up Go 1.24
       uses: actions/setup-go@v5
