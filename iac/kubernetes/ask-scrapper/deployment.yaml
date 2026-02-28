@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: ask-scrapper
-          image: ghcr.io/umu-art/ask-scrapper:latest
+          image: ghcr.io/umu-art/ask-scrapper:main
           envFrom:
             - secretRef:
                 name: ask-scrapper
