@@ -21,6 +21,8 @@
     },
 
     /* Linting */
+    "types": ["vitest/globals", "@testing-library/jest-dom"],
+
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
