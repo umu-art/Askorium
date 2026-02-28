@@ -11,7 +11,7 @@ spec:
     server: https://kubernetes.default.svc
   source:
     path: iac/argo
-    repoURL: https://github.com/umu-art/askorium
+    repoURL: https://github.com/umu-art/Askorium
     targetRevision: HEAD
   project: askorium
   syncPolicy:
