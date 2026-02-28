@@ -54,6 +54,12 @@ runs:
       run: go build -o ${{ inputs.module }} .
 
     # --- Node ---
+    - name: Install dependencies (Node)
+      if: inputs.script == 'node'
+      shell: bash
+      working-directory: ${{ inputs.module }}
+      run: npm install
+
     - name: Test (Node)
       if: inputs.script == 'node'
       shell: bash
