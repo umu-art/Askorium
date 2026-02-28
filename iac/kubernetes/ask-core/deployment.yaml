@@ -45,5 +45,12 @@ spec:
               cpu: "200m"
               memory: "600M"
             limits:
-              cpu: "1000m"
               memory: "1G"
+
+          securityContext:
+            allowPrivilegeEscalation: false
+
+      imagePullSecrets:
+        - name: github-container-registry
+
+      restartPolicy: Always
