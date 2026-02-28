@@ -20,6 +20,10 @@ runs:
       with:
         python-version: '3.14'
 
+    - name: Install pyyaml
+      shell: bash
+      run: pip install pyyaml
+
     - name: Set up Go 1.24
       uses: actions/setup-go@v5
       with:

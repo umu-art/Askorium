@@ -23,9 +23,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Prepare environment
-        uses: ./.github/workflows/actions/prepare_env
-
       - name: Detect changes
         id: filter
         uses: dorny/paths-filter@v3
@@ -35,6 +32,10 @@ jobs:
               - '${{ inputs.module }}/**'
               - 'api/**'
               - 'iac/images/${{ inputs.module }}/**'
+
+      - name: Prepare environment
+        if: steps.filter.outputs.changed == 'true'
+        uses: ./.github/workflows/actions/prepare_env
 
       - name: Run tests and build
         if: steps.filter.outputs.changed == 'true'
