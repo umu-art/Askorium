@@ -6,7 +6,7 @@ metadata:
   labels:
     app: ask-core
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: ask-core
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: ask-core
-          image: ghcr.io/umu-art/ask-core:latest
+          image: ghcr.io/umu-art/ask-core:main
           ports:
             - name: http
               containerPort: 8080
@@ -42,8 +42,15 @@ spec:
 
           resources:
             requests:
-              cpu: "250m"
-              memory: "512Mi"
+              cpu: "200m"
+              memory: "600M"
             limits:
-              cpu: "1000m"
-              memory: "1Gi"
+              memory: "1G"
+
+          securityContext:
+            allowPrivilegeEscalation: false
+
+      imagePullSecrets:
+        - name: github-container-registry
+
+      restartPolicy: Always

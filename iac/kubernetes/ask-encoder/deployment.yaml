@@ -6,7 +6,7 @@ metadata:
   labels:
     app: ask-encoder
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: ask-encoder
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: ask-encoder
-          image: ghcr.io/umu-art/ask-encoder:latest
+          image: ghcr.io/umu-art/ask-encoder:main
           ports:
             - name: http
               containerPort: 8000
@@ -42,8 +42,16 @@ spec:
 
           resources:
             requests:
-              cpu: "500m"
-              memory: "2Gi"
+              cpu: "200m"
+              memory: "1G"
             limits:
               cpu: "2000m"
-              memory: "4Gi"
+              memory: "2G"
+
+          securityContext:
+            allowPrivilegeEscalation: false
+
+      imagePullSecrets:
+        - name: github-container-registry
+
+      restartPolicy: Always

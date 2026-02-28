@@ -20,8 +20,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Prepare environment
-        uses: ./.github/workflows/actions/prepare_env
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Detect changes
         id: filter
@@ -32,6 +32,10 @@ jobs:
               - '${{ inputs.module }}/**'
               - 'api/**'
               - 'iac/images/${{ inputs.module }}/**'
+
+      - name: Prepare environment
+        if: steps.filter.outputs.changed == 'true'
+        uses: ./.github/workflows/actions/prepare_env
 
       - name: Run tests and build
         if: steps.filter.outputs.changed == 'true'

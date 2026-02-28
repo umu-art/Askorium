@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: ask-ui
-          image: ghcr.io/umu-art/ask-ui:latest
+          image: ghcr.io/umu-art/ask-ui:main
           ports:
             - name: http
               containerPort: 80
@@ -39,8 +39,16 @@ spec:
 
           resources:
             requests:
+              memory: "50M"
               cpu: "50m"
-              memory: "64Mi"
             limits:
-              cpu: "200m"
-              memory: "128Mi"
+              memory: "50M"
+              cpu: "50m"
+
+          securityContext:
+            allowPrivilegeEscalation: false
+
+      imagePullSecrets:
+        - name: github-container-registry
+
+      restartPolicy: Always
