@@ -7,6 +7,7 @@ metadata:
     app: ask-scrapper
 spec:
   replicas: 0
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: ask-scrapper
