@@ -44,16 +44,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Detect IaC changes
-        id: iac
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            iac:
-              - 'iac/**'
-
       - name: Sync
-        if: steps.iac.outputs.iac == 'true'
         uses: ./.github/workflows/actions/argo_sync
         with:
           argocd-server: ${{ secrets.ARGOCD_SERVER }}

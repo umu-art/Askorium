@@ -11,4 +11,6 @@ RUN pip install --no-cache-dir ./*.whl
 
 COPY ask-encoder .
 
+RUN python -m app --fetch
+
 ENTRYPOINT ["python", "-m", "app"]

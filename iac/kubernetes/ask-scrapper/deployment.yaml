@@ -6,7 +6,8 @@ metadata:
   labels:
     app: ask-scrapper
 spec:
-  replicas: 2
+  replicas: 0
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: ask-scrapper
@@ -39,7 +40,7 @@ spec:
 
           resources:
             requests:
-              cpu: "250m"
+              cpu: "200m"
               memory: "256Mi"
             limits:
               cpu: "1000m"
