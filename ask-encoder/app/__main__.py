@@ -1,4 +1,5 @@
 import logging
+import sys
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -11,6 +12,11 @@ from app.encoder_impl import EncoderImpl  # noqa: F401 — registers BaseEncoder
 from app.model_loader import get_embedder, get_reranker, models_ready
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
+if "--fetch" in sys.argv:
+    get_embedder(settings)
+    get_reranker(settings)
+    sys.exit(0)
 
 
 @asynccontextmanager
@@ -32,4 +38,4 @@ async def health():
 
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host=settings.host, port=settings.port)
+    uvicorn.run("app.__main__:app", host=settings.host, port=settings.port)
