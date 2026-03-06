@@ -3,8 +3,8 @@ LABEL authors="vikazeni"
 
 WORKDIR /application
 
+COPY /iac/images/ask-core/opentelemetry-javaagent.jar ./opentelemetry-javaagent.jar
 COPY /ask-core/target/ask-core-1.0.0.jar ./app.jar
 
 ENV JAVA_OPTS='-XX:MaxRAMPercentage=60.0'
-
-ENTRYPOINT ["java", "-jar", "./app.jar", "$JAVA_OPTS"]
+ENTRYPOINT ["java", "-javaagent:opentelemetry-javaagent.jar", "-jar", "./app.jar", "$JAVA_OPTS"]
