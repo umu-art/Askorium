@@ -1,0 +1,113 @@
+server:
+  enabled: true
+  image:
+    repository: temporalio/server
+    tag: 1.29.2
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  metrics:
+    annotations:
+      enabled: false
+    serviceMonitor:
+      enabled: true
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+  config:
+    persistence:
+      defaultStore: default
+      visibilityStore: visibility
+      numHistoryShards: 512
+
+      datastores:
+        default:
+          sql:
+            createDatabase: false
+            manageSchema: true
+            pluginName: postgres12
+            driverName: postgres12
+            databaseName: temporal
+            connectAddr: "192.168.20.10:5432"
+            connectProtocol: "tcp"
+            user: temporal
+            existingSecret: temporal-db-secret
+            secretKey: password
+            maxConns: 10
+
+        visibility:
+          sql:
+            createDatabase: false
+            manageSchema: true
+            pluginName: postgres12
+            driverName: postgres12
+            databaseName: temporal
+            connectAddr: "192.168.20.10:5432"
+            connectProtocol: "tcp"
+            user: temporal
+            existingSecret: temporal-db-secret
+            secretKey: password
+            maxConns: 10
+
+  frontend:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    metrics:
+      annotations:
+        enabled: false
+      serviceMonitor:
+        enabled: true
+
+  history:
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+    metrics:
+      annotations:
+        enabled: false
+      serviceMonitor:
+        enabled: true
+
+  matching:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    metrics:
+      annotations:
+        enabled: false
+      serviceMonitor:
+        enabled: true
+
+  worker:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    metrics:
+      annotations:
+        enabled: false
+      serviceMonitor:
+        enabled: true
+
+admintools:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+web:
+  enabled: true
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
