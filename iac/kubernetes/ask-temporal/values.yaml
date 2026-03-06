@@ -13,24 +13,24 @@ server:
     serviceMonitor:
       enabled: true
 
-    persistence:
-      defaultStore: longhorn
-      numHistoryShards: 512
+  persistence:
+    defaultStore: longhorn
+    numHistoryShards: 512
 
-      datastores:
-        default:
-          sql:
-            createDatabase: false
-            manageSchema: false
-            pluginName: postgres12
-            driverName: postgres12
-            databaseName: temporal
-            connectAddr: "192.168.20.10:5432"
-            connectProtocol: "tcp"
-            user: temporal
-            existingSecret: temporal-db-secret
-            secretKey: password
-            maxConns: 10
+    datastores:
+      default:
+        sql:
+          createDatabase: false
+          manageSchema: false
+          pluginName: postgres12
+          driverName: postgres12
+          databaseName: temporal
+          connectAddr: "192.168.20.10:5432"
+          connectProtocol: "tcp"
+          user: temporal
+          existingSecret: temporal-db-secret
+          secretKey: password
+          maxConns: 10
 
   frontend:
     metrics:
