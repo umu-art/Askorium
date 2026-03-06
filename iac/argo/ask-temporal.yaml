@@ -9,7 +9,7 @@ spec:
     server: https://kubernetes.default.svc
   sources:
     - repoURL: https://github.com/temporalio/helm-charts
-      targetRevision: main
+      targetRevision: v1.22.4
       path: charts/temporal
       helm:
         valueFiles:
