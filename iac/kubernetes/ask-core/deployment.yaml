@@ -25,6 +25,8 @@ spec:
           envFrom:
             - secretRef:
                 name: ask-core
+            - configMapRef:
+                name: ask-core-otel-config
 
           livenessProbe:
             httpGet:
