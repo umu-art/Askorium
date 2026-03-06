@@ -1,0 +1,374 @@
+openapi: "3.1.0"
+
+info:
+  title: Crawler Api
+  version: 1.0.0
+  description: |
+    Схемы DTO для взаимодействия внешней системы с Crawler через RabbitMQ.
+
+    ## Входящие сообщения (External → Crawler)
+
+    - `CrawlTaskRequest` — запустить обход домена
+
+    - `CrawlTaskCancel` — отменить активную задачу
+
+
+    ## Исходящие сообщения (Crawler → External)
+    События публикуются по мере обхода. Тип определяется по полю `type`.
+
+    Гарантированный порядок для одной задачи:
+    `page.scraped* → task.completed | task.failed`
+
+paths:
+  /stub:
+    get:
+      tags:
+        - scrapper
+      operationId: stub
+      summary: Заглушка для успешной генерации моделей.
+      responses:
+        200:
+          description: Успешный ответ от заглушки
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/CrawlTaskRequest'
+                  - $ref: '#/components/schemas/CrawlTaskCancel'
+                  - $ref: '#/components/schemas/CrawlEvent'
+                  - $ref: '#/components/schemas/ScrapedPage'
+
+components:
+  schemas:
+    CrawlTaskRequest:
+      type: object
+      required:
+        - task_id
+        - domain
+      properties:
+        task_id:
+          type: string
+          format: uuid
+          description: Уникальный идентификатор задачи, генерируется внешней системой
+        domain:
+          type: string
+          description: Домен для обхода без схемы
+          example: "example.com"
+        seed_urls:
+          type: array
+          description: |
+            Стартовые URL. Если не указаны — Crawler самостоятельно формирует
+            начальный набор из robots.txt / sitemap / корневой страницы домена.
+          items:
+            type: string
+            format: uri
+          default: []
+        options:
+          $ref: "#/components/schemas/CrawlOptions"
+        metadata:
+          type: object
+          description: Произвольные данные; возвращаются без изменений во всех исходящих событиях
+          additionalProperties: true
+
+    CrawlOptions:
+      type: object
+      properties:
+        max_pages:
+          type: integer
+          default: 1000
+          minimum: 1
+          description: Максимальное количество страниц для обхода
+        max_depth:
+          type: integer
+          default: 5
+          minimum: 1
+          description: Максимальная глубина ссылок от seed_urls
+        concurrency:
+          type: integer
+          default: 5
+          minimum: 1
+          maximum: 50
+          description: Максимальное количество одновременно обрабатываемых URL
+        rate_limit_rps:
+          type: number
+          format: float
+          default: 2.0
+          minimum: 0.1
+          description: Максимальное количество запросов в секунду к домену
+        include_patterns:
+          type: array
+          description: |
+            Regex-паттерны: включать только совпадающие URL.
+            Если список пуст — включаются все URL домена.
+          items:
+            type: string
+          example: ["/blog/.*", "/docs/.*"]
+        exclude_patterns:
+          type: array
+          description: Regex-паттерны URL, которые нужно исключать из обхода
+          items:
+            type: string
+          example: ["/admin/.*", "\\?.*sort="]
+        respect_robots_txt:
+          type: boolean
+          default: true
+          description: Соблюдать директивы robots.txt
+        scrape_options:
+          $ref: "#/components/schemas/ScrapeOptions"
+
+    ScrapeOptions:
+      type: object
+      description: Параметры скрапинга, передаются Crawler-ом в Scraper для каждой страницы
+      properties:
+        timeout_ms:
+          type: integer
+          default: 30000
+          description: Таймаут загрузки страницы (миллисекунды)
+        extract_documents:
+          type: boolean
+          default: false
+          description: Извлекать ли вложения (изображения, PDF и т.п.)
+
+    CrawlTaskCancel:
+      type: object
+      required:
+        - task_id
+      properties:
+        task_id:
+          type: string
+          format: uuid
+
+    CrawlEvent:
+      type: object
+      required:
+        - task_id
+        - type
+        - timestamp
+      properties:
+        task_id:
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/CrawlEventType"
+        timestamp:
+          type: string
+          format: date-time
+        url: # page.scraped
+          type: string
+          format: uri
+          description: URL обработанной страницы
+        depth: # page.scraped
+          type: integer
+          description: Глубина страницы от seed_urls
+        page: # page.scraped
+          $ref: "#/components/schemas/ScrapedPage"
+        error: # task.failed
+          $ref: "#/components/schemas/CrawlerError"
+        completion_reason: # task.completed
+          $ref: "#/components/schemas/CompletionReason"
+        stats:
+          $ref: "#/components/schemas/CrawlProgressStats"
+
+    CrawlProgressStats:
+      description: Текущий прогресс задачи на момент события
+      type: object
+      properties:
+        pages_scraped:
+          type: integer
+          description: Успешно обработано страниц
+        pages_failed:
+          type: integer
+          description: Страниц завершились ошибкой
+        pages_in_flight:
+          type: integer
+          description: Страниц сейчас обрабатывается
+        frontier_size:
+          type: integer
+          description: Страниц ожидает в очереди
+
+    CrawlFinalStats:
+      description: Итоговая статистика по завершении задачи
+      type: object
+      properties:
+        pages_scraped:
+          type: integer
+          description: Успешно обработано страниц
+        pages_failed:
+          type: integer
+          description: Страниц завершились ошибкой
+        pages_skipped:
+          type: integer
+          description: Пропущено (robots.txt, паттерны, лимит глубины)
+        duration_ms:
+          type: integer
+          description: Общее время выполнения задачи в миллисекундах
+
+    ScrapedPage:
+      type: object
+      required:
+        - url
+        - title
+        - blocks
+      properties:
+        url:
+          type: string
+          description: Финальный URL страницы (после редиректов)
+        title:
+          type: string
+          description: Заголовок страницы
+        description:
+          type: string
+          description: Мета-описание страницы
+        previewUrl:
+          type: string
+          description: Ссылка на превью (Open Graph image и т.п.)
+        iconUrl:
+          type: string
+          description: Ссылка на favicon
+        language:
+          type: string
+          description: Язык страницы (например "ru", "en"), если определён
+        lastModified:
+          type: string
+          format: date-time
+          description: Дата последнего изменения, если доступна
+        blocks:
+          type: array
+          description: Логические блоки текста (заголовки, абзацы, элементы списков)
+          items:
+            $ref: "#/components/schemas/ContentBlock"
+        links:
+          type: array
+          description: Ссылки, найденные на странице
+          items:
+            $ref: "#/components/schemas/Link"
+        documents:
+          type: array
+          description: Вложения (изображения, PDF и т.п.)
+          items:
+            $ref: "#/components/schemas/Document"
+
+    ContentBlock:
+      type: object
+      required:
+        - type
+        - text
+      properties:
+        htmlId:
+          type: string
+          description: Значение атрибута id элемента, если есть
+        type:
+          $ref: "#/components/schemas/ContentBlockType"
+        headingLevel:
+          type: integer
+          minimum: 1
+          maximum: 6
+          description: Уровень заголовка (только для type=heading)
+        text:
+          type: string
+          description: Очищённый текст блока
+
+    Link:
+      type: object
+      required:
+        - href
+        - type
+        - position
+      properties:
+        href:
+          type: string
+          description: Целевой URL ссылки
+        type:
+          $ref: "#/components/schemas/LinkType"
+        anchorText:
+          type: string
+          description: Текст анкора, если есть
+        contextBlockId:
+          type: string
+          description: htmlId блока, внутри которого находится ссылка
+        position:
+          type: integer
+          description: Начальная позиция ссылки внутри текста блока
+        snippet:
+          type: string
+          description: Короткий контекст вокруг ссылки
+
+    Document:
+      type: object
+      required:
+        - url
+        - mimeType
+      properties:
+        url:
+          type: string
+          description: Ссылка на документ или изображение
+        mimeType:
+          type: string
+          description: "MIME-тип (например: image/jpeg, application/pdf)"
+        sizeBytes:
+          type: integer
+          description: Размер в байтах, если доступен
+        extractedText:
+          type: string
+          description: Текст, извлечённый из файла (OCR / PDF text), если был извлечён
+        description:
+          type: string
+          description: Короткое текстовое описание (alt, caption или сгенерированное моделью)
+        descriptionSource:
+          $ref: "#/components/schemas/DocumentDescriptionSourceType"
+
+    CrawlerError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          $ref: "#/components/schemas/CrawlerErrorCode"
+        message:
+          type: string
+
+    CompletionReason:
+      type: string
+      description: Причина штатного завершения задачи
+      enum:
+        - FRONTIER_EMPTY
+        - MAX_PAGES_REACHED
+        - MAX_DEPTH_REACHED
+
+    CrawlerErrorCode:
+      type: string
+      description: Код критической ошибки краулера
+      enum:
+        - INVALID_DOMAIN 
+        - ROBOTS_FETCH_FAILED
+        - SITEMAP_PARSE_FAILED
+        - INTERNAL_ERROR
+
+    CrawlEventType:
+      type: string
+      enum:
+        - page.scraped
+        - task.completed
+        - task.failed
+
+    ContentBlockType:
+      type: string
+      enum:
+        - heading
+        - paragraph
+        - listItem
+
+    LinkType:
+      type: string
+      enum:
+        - internal
+        - external
+
+    DocumentDescriptionSourceType:
+      type: string
+      description: Источник описания документа
+      enum:
+        - alt
+        - caption
+        - generated

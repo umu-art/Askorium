@@ -1,0 +1,26 @@
+sources:
+  - crawler-api.yaml
+target: go-crawler-api
+generatorName: go
+
+additionalProperties:
+  packageName: crawler_model
+  packageVersion: 1.0.0
+  isGoSubmodule: false
+  enumClassPrefix: true
+  structPrefix: true
+  withXml: false
+  withGoMod: true
+  moduleName: github.com/omo-ri/askorium/go-crawler-api
+  generateReadme: false
+
+globalProperties:
+  models: ''
+  apis: false
+  supportingFiles:
+    - utils.go
+    - go.mod
+  modelTests: false
+  apiTests: false
+  modelDocs: false
+  apiDocs: false
