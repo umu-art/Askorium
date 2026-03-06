@@ -1,0 +1,68 @@
+server:
+  enabled: true
+  image:
+    repository: temporalio/server
+    tag: 1.29.2
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+  metrics:
+    annotations:
+      enabled: false
+
+    serviceMonitor:
+      enabled: true
+
+    persistence:
+      defaultStore: longhorn
+      numHistoryShards: 512
+
+      datastores:
+        default:
+          sql:
+            createDatabase: false
+            manageSchema: false
+            pluginName: postgres12
+            driverName: postgres12
+            databaseName: temporal
+            connectAddr: "192.168.20.10:5432"
+            connectProtocol: "tcp"
+            user: temporal
+            existingSecret: temporal-db-secret
+            secretKey: password
+            maxConns: 10
+
+  frontend:
+    metrics:
+      annotations:
+        enabled: false
+      serviceMonitor:
+        enabled: true
+
+  history:
+    metrics:
+      annotations:
+        enabled: false
+      serviceMonitor:
+        enabled: true
+
+  matching:
+    metrics:
+      annotations:
+        enabled: false
+      serviceMonitor:
+        enabled: true
+
+  worker:
+    metrics:
+      annotations:
+        enabled: false
+      serviceMonitor:
+        enabled: true
+
+admintools:
+  enabled: true
+
+web:
+  enabled: true
+  replicaCount: 1

@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ask-temporal
+  namespace: argocd
+spec:
+  destination:
+    namespace: askorium
+    server: https://kubernetes.default.svc
+  sources:
+    - repoURL: https://github.com/temporalio/helm-charts
+      targetRevision: main
+      path: charts/temporal
+      helm:
+        valueFiles:
+          - $askorium/iac/kubernetes/ask-temporal/values.yaml
+    - repoURL: https://github.com/umu-art/askorium
+      targetRevision: HEAD
+      ref: askorium
+  project: askorium
