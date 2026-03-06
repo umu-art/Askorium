@@ -25,7 +25,7 @@ public class AskScrapperServiceImpl implements AskScrapperService {
         return List.of(); // TODO: complete
     }
 
-    @RabbitListener(queues = "${askorium.amqp.scrapped-pages-queue}")
+    @RabbitListener(queues = "#{scrapperResponseQueue.name}")
     public void handleScrappedPage(ScrapeResponse scrapeResponse) {
     }
 }
