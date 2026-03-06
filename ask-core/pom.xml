@@ -23,6 +23,8 @@
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <redisson-spring-boot-starter.version>3.52.0</redisson-spring-boot-starter.version>
         <temporal-spring-boot-starter.version>1.32.0</temporal-spring-boot-starter.version>
+        <spring-data-opensearch-starter.version>2.0.5</spring-data-opensearch-starter.version>
+        <opensearch-java.version>3.1.0</opensearch-java.version>
     </properties>
 
     <dependencyManagement>
@@ -116,8 +118,21 @@
         </dependency>
 
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+            <groupId>org.opensearch.client</groupId>
+            <artifactId>spring-data-opensearch-starter</artifactId>
+            <version>${spring-data-opensearch-starter.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.opensearch.client</groupId>
+                    <artifactId>opensearch-rest-high-level-client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.opensearch.client</groupId>
+            <artifactId>opensearch-java</artifactId>
+            <version>${opensearch-java.version}</version>
         </dependency>
 
         <dependency>
