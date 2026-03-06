@@ -6,11 +6,17 @@ server:
     pullPolicy: IfNotPresent
 
   replicaCount: 1
+
   metrics:
     annotations:
       enabled: false
     serviceMonitor:
       enabled: true
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
 
   config:
     persistence:
@@ -22,7 +28,7 @@ server:
         default:
           sql:
             createDatabase: false
-            manageSchema: false
+            manageSchema: true
             pluginName: postgres12
             driverName: postgres12
             databaseName: temporal
@@ -36,7 +42,7 @@ server:
         visibility:
           sql:
             createDatabase: false
-            manageSchema: false
+            manageSchema: true
             pluginName: postgres12
             driverName: postgres12
             databaseName: temporal
@@ -48,6 +54,10 @@ server:
             maxConns: 10
 
   frontend:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
     metrics:
       annotations:
         enabled: false
@@ -55,6 +65,10 @@ server:
         enabled: true
 
   history:
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
     metrics:
       annotations:
         enabled: false
@@ -62,6 +76,10 @@ server:
         enabled: true
 
   matching:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
     metrics:
       annotations:
         enabled: false
@@ -69,6 +87,10 @@ server:
         enabled: true
 
   worker:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
     metrics:
       annotations:
         enabled: false
@@ -77,7 +99,15 @@ server:
 
 admintools:
   enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
 
 web:
   enabled: true
   replicaCount: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
