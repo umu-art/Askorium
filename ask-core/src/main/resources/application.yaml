@@ -38,6 +38,7 @@ spring:
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
 
   temporal:
     connection:
@@ -73,9 +74,6 @@ spring:
       hibernate:
         default_batch_fetch_size: 500
 
-  elasticsearch:
-    uris: ${ELASTICSEARCH_URL:http://localhost:9200}
-
   data:
     elasticsearch:
       repositories:
@@ -100,6 +98,9 @@ spring:
   web:
     resources:
       add-mappings: false
+
+opensearch:
+  uris: ${ELASTICSEARCH_URL:http://localhost:9200}
 
 server:
   servlet:

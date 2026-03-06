@@ -6,7 +6,7 @@ metadata:
   labels:
     app: ask-encoder
 spec:
-  replicas: 0
+  replicas: 1
   revisionHistoryLimit: 2
   selector:
     matchLabels:
@@ -41,10 +41,10 @@ spec:
           resources:
             requests:
               cpu: "200m"
-              memory: "1G"
+              memory: "2500M"
             limits:
               cpu: "2000m"
-              memory: "2G"
+              memory: "2500M"
 
           securityContext:
             allowPrivilegeEscalation: false
