@@ -113,8 +113,8 @@ docker run --rm \
 
 | Компонент | Имя |
 |---|---|
-| Dead Letter Exchange | `render.dlx` (FANOUT) |
-| Dead Letter Queue | `render.dlq` |
+| Dead Letter Exchange | `render.input.dlx` (FANOUT) |
+| Dead Letter Queue | `render.input.dlq` |
 
 ## Эндпоинты
 

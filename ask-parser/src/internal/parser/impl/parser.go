@@ -1,7 +1,7 @@
-package parser
+package impl
 
 import (
-	"ask-scrapper/internal/parser/lib"
+	"ask-parser/internal/parser"
 	"fmt"
 	"strings"
 
@@ -9,14 +9,16 @@ import (
 	scrappermodel "github.com/omo-ri/askorium/go-scrapper-api"
 )
 
-type Parser interface {
-	Parse(rawHTML string, pageURL string) (*scrappermodel.ScrappedPage, error)
+type htmlParser struct {
+	metadata parser.MetadataExtractor
+	content  parser.ContentExtractor
 }
 
-type htmlParser struct{}
-
-func NewParser() Parser {
-	return &htmlParser{}
+func NewParser() parser.Parser {
+	return &htmlParser{
+		metadata: NewMetadataExtractor(),
+		content:  NewContentExtractor(),
+	}
 }
 
 func (p *htmlParser) Parse(rawHTML string, pageURL string) (*scrappermodel.ScrappedPage, error) {
@@ -24,12 +26,23 @@ func (p *htmlParser) Parse(rawHTML string, pageURL string) (*scrappermodel.Scrap
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse HTML: %w", err)
 	}
-	meta := lib.ExtractMetadata(doc)
-	page := scrappermodel.NewScrappedPage(pageURL, meta.Title, []scrappermodel.ContentBlock{})
+
+	meta := p.metadata.Extract(doc)
+	blocks, links, documents := p.content.Extract(doc, pageURL)
+
+	page := scrappermodel.NewScrappedPage(pageURL, meta.Title, blocks)
 	page.Description = meta.Description
 	page.PreviewUrl = meta.PreviewURL
 	page.IconUrl = meta.IconURL
 	page.Language = meta.Language
 	page.LastModified = meta.LastModified
+
+	if len(links) > 0 {
+		page.SetLinks(links)
+	}
+	if len(documents) > 0 {
+		page.SetDocuments(documents)
+	}
+
 	return page, nil
 }

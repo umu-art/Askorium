@@ -1,23 +1,21 @@
-package lib
+package impl
 
 import (
+	"ask-parser/internal/parser"
 	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
-type Metadata struct {
-	Title        string
-	Description  *string
-	PreviewURL   *string
-	IconURL      *string
-	Language     *string
-	LastModified *time.Time
+type metadataExtractor struct{}
+
+func NewMetadataExtractor() parser.MetadataExtractor {
+	return &metadataExtractor{}
 }
 
-func ExtractMetadata(doc *goquery.Document) *Metadata {
-	return &Metadata{
+func (e *metadataExtractor) Extract(doc *goquery.Document) *parser.Metadata {
+	return &parser.Metadata{
 		Title:        getTitle(doc),
 		Description:  getDescription(doc),
 		PreviewURL:   getPreviewURL(doc),

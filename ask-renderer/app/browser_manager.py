@@ -83,11 +83,17 @@ class BrowserManager:
 
     async def shutdown(self):
         if self._browser is not None:
-            await self._browser.close()
+            try:
+                await self._browser.close()
+            except Exception as e:
+                logger.warning("error closing browser: %s", e)
             self._browser = None
             logger.info("browser closed")
         if self._playwright is not None:
-            await self._playwright.stop()
+            try:
+                await self._playwright.stop()
+            except Exception as e:
+                logger.warning("error stopping playwright: %s", e)
             self._playwright = None
 
     async def render_page(

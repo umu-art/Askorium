@@ -1,4 +1,4 @@
-module ask-scrapper
+module ask-parser
 
 go 1.25.7
 
@@ -12,6 +12,7 @@ require (
 require (
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	golang.org/x/net v0.47.0 // indirect
+	gopkg.in/validator.v2 v2.0.1 // indirect
 )
 
 replace (

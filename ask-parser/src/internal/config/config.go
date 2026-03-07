@@ -8,34 +8,28 @@ import (
 )
 
 const (
-	defaultRequestQueue  = "scrape.request"
-	defaultResponseQueue = "scrape.response"
-	defaultPrefetchCount = "5"
+	defaultInputQueue    = "render.output"
+	defaultOutputQueue   = "parser.output"
+	defaultPrefetchCount = "10"
 	defaultLogLevel      = "info"
 )
 
 type Config struct {
-	RendererURL   string
 	AmqpURL       string
-	RequestQueue  string
-	ResponseQueue string
+	InputQueue    string
+	OutputQueue   string
 	PrefetchCount int
 	LogLevel      string
 }
 
 func Load() (*Config, error) {
-	rendererURL := os.Getenv("RENDERER_URL")
-	if rendererURL == "" {
-		return nil, fmt.Errorf("RENDERER_URL environment variable not set")
-	}
-
 	amqpURL := os.Getenv("AMQP_URL")
 	if amqpURL == "" {
 		return nil, fmt.Errorf("AMQP_URL environment variable not set")
 	}
 
-	requestQueue := getEnvOrDefault("AMQP_REQUEST_QUEUE", defaultRequestQueue)
-	responseQueue := getEnvOrDefault("AMQP_RESPONSE_QUEUE", defaultResponseQueue)
+	inputQueue := getEnvOrDefault("INPUT_QUEUE", defaultInputQueue)
+	outputQueue := getEnvOrDefault("OUTPUT_QUEUE", defaultOutputQueue)
 	logLevel := strings.ToLower(getEnvOrDefault("LOG_LEVEL", defaultLogLevel))
 
 	prefetchStr := getEnvOrDefault("PREFETCH_COUNT", defaultPrefetchCount)
@@ -44,10 +38,9 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid PREFETCH_COUNT %q: %w", prefetchStr, err)
 	}
 	return &Config{
-		RendererURL:   rendererURL,
 		AmqpURL:       amqpURL,
-		RequestQueue:  requestQueue,
-		ResponseQueue: responseQueue,
+		InputQueue:    inputQueue,
+		OutputQueue:   outputQueue,
 		PrefetchCount: prefetchCount,
 		LogLevel:      logLevel,
 	}, nil

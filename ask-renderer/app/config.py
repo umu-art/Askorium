@@ -7,7 +7,7 @@ class Config:
     OUTPUT_QUEUE: str = os.getenv("OUTPUT_QUEUE", "render.output")
     MAX_CONCURRENT_PAGES: int = int(os.getenv("MAX_CONCURRENT_PAGES", "5"))
     DEFAULT_TIMEOUT_MS: int = int(os.getenv("DEFAULT_TIMEOUT_MS", "15000"))
-    MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "2"))
+    MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "3"))
     MESSAGE_TTL_MS: int = int(os.getenv("MESSAGE_TTL_MS", "60000"))
     RECONNECT_INTERVAL_S: int = int(os.getenv("RECONNECT_INTERVAL_S", "5"))
     HEALTH_PORT: int = int(os.getenv("HEALTH_PORT", "8080"))

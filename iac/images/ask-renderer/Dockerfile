@@ -1,6 +1,6 @@
-FROM mcr.microsoft.com/playwright:v1.58.2-noble
-
+FROM mcr.microsoft.com/playwright/python:v1.58.0-noble
 WORKDIR /application
+
 
 COPY /ask-renderer/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
