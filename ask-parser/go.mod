@@ -16,6 +16,6 @@ require (
 )
 
 replace (
-	github.com/omo-ri/askorium/go-renderer-api => ./../../api/build/go-renderer-api
-	github.com/omo-ri/askorium/go-scrapper-api => ./../../api/build/go-scrapper-api
+	github.com/omo-ri/askorium/go-renderer-api => ./../api/build/go-renderer-api
+	github.com/omo-ri/askorium/go-scrapper-api => ./../api/build/go-scrapper-api
 )

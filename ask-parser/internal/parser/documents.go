@@ -1,4 +1,4 @@
-package impl
+package parser
 
 import (
 	"path"
@@ -52,8 +52,7 @@ func newDocumentFromAnchor(href string, anchorText string) scrappermodel.Documen
 	text := strings.TrimSpace(anchorText)
 	if text != "" {
 		doc.SetDescription(text)
-		src := scrappermodel.DOCUMENTDESCRIPTIONSOURCETYPE_PARAGRAPH
-		doc.SetDescriptionSource(src)
+		doc.SetDescriptionSource(scrappermodel.DOCUMENTDESCRIPTIONSOURCETYPE_PARAGRAPH)
 	}
 	return doc
 }
@@ -68,8 +67,7 @@ func newDocumentFromImg(src string, alt string) scrappermodel.Document {
 	alt = strings.TrimSpace(alt)
 	if alt != "" {
 		doc.SetDescription(alt)
-		descSrc := scrappermodel.DOCUMENTDESCRIPTIONSOURCETYPE_PARAGRAPH
-		doc.SetDescriptionSource(descSrc)
+		doc.SetDescriptionSource(scrappermodel.DOCUMENTDESCRIPTIONSOURCETYPE_PARAGRAPH)
 	}
 	return doc
 }

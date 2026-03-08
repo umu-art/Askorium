@@ -27,6 +27,18 @@ cd ask-parser/src
 AMQP_URL=amqp://guest:guest@localhost:5672/ go run ./cmd/main.go
 ```
 
+## Docker
+
+Из корня проекта:
+
+```bash
+# Сборка образа
+docker build -f iac/images/ask-parser/Dockerfile -t ask-parser .
+
+# Запуск
+docker run -e AMQP_URL=amqp://guest:guest@host.docker.internal:5672/ ask-parser
+```
+
 ## Конфигурация (env)
 
 | Переменная | Дефолт | Описание |
@@ -117,9 +129,44 @@ AMQP_URL=amqp://guest:guest@localhost:5672/ go run ./cmd/main.go
 
 Поле `metadata` прозрачно копируется из входящего сообщения в исходящее без изменений.
 
-## Извлекаемые данные
+## Пайплайн парсинга
 
-### Метаданные страницы
+Парсер обрабатывает HTML в три последовательных этапа:
+
+```
+Raw HTML
+  │
+  ▼
+Sanitizer   — удаляет шумовые узлы из DOM
+  │
+  ▼
+Extractor   — извлекает метаданные, блоки, ссылки, документы
+  │
+  ▼
+Normalizer  — нормализует URL, убирает дубликаты, чистит текст
+  │
+  ▼
+ScrappedPage
+```
+
+### Sanitizer
+
+Удаляет из DOM узлы, не несущие полезного контента:
+
+| Селектор | Причина удаления |
+|---|---|
+| `nav` | Навигация — повторяется на каждой странице |
+| `aside` | Боковые панели, реклама |
+| `footer` | Подвал — копирайт, повторные ссылки |
+| `header` | Шапка — логотип, навигация |
+| `noscript`, `script`, `style` | Служебный код |
+| `svg`, `iframe` | Встроенные объекты без текстового контента |
+| `[hidden]`, `[aria-hidden="true"]` | Скрытые элементы |
+| `[style*="display:none"]` | Элементы, скрытые через inline-стили |
+
+### Extractor
+
+#### Метаданные страницы
 
 | Поле | Источник |
 |---|---|
@@ -130,7 +177,7 @@ AMQP_URL=amqp://guest:guest@localhost:5672/ go run ./cmd/main.go
 | `language` | `<html lang>` |
 | `lastModified` | `article:modified_time` → `http-equiv=last-modified` |
 
-### Контентные блоки
+#### Контентные блоки
 
 Парсер выбирает корневой элемент контента: `<main>` → `<article>` → `<body>` (fallback).
 
@@ -141,14 +188,55 @@ AMQP_URL=amqp://guest:guest@localhost:5672/ go run ./cmd/main.go
 
 Каждый блок получает `htmlId` (из атрибута `id` элемента, либо генерируется `block-0`, `block-1`, ...).
 
-### Ссылки
+#### Ссылки
 
-Из каждого блока извлекаются `<a>` — с позицией в тексте, сниппетом контекста, классификацией (internal/external по хосту).
+Из каждого блока извлекаются `<a>` — с позицией в тексте (rune-based), сниппетом контекста, классификацией (internal/external по хосту).
 
-### Документы
+Фильтруются: пустые href, `#` (якоря), `javascript:`, `mailto:`, `tel:`.
+
+#### Документы
 
 - `<a>` со ссылкой на файл (`.pdf`, `.doc`, `.docx`, `.xls`, `.xlsx`, `.ppt`, `.pptx`, `.zip`, `.rar`) → `Document`
 - `<img>` → `Document` (с alt-текстом как описание)
+
+### Normalizer
+
+| Действие | Описание |
+|---|---|
+| Фильтрация коротких блоков | Блоки с текстом < 2 символов удаляются (убирает шум вроде кнопок "A") |
+| Нормализация пробелов | Множественные пробелы/переносы → одиночный пробел |
+| Нормализация URL | Удаление `utm_*` параметров и фрагментов (`#...`) |
+| Дедупликация ссылок | Одинаковые URL сохраняются только при первом вхождении |
+
+## Планируемые расширения
+
+### Расширение ContentBlockType
+
+Текущий парсер извлекает только `h1-h6`, `<p>`, `<li>`. Для полноценного семантического поиска Ask-Core необходимо расширить набор извлекаемых элементов:
+
+| Элемент | Тип (планируемый) | Обоснование |
+|---|---|---|
+| `<table>` (`<td>`, `<th>`) | `tableCell` | Ключевая информация часто в таблицах (расписания, тарифы, параметры API) |
+| `<pre>`, `<code>` | `code` | Основной контент технических документаций и туториалов |
+| `<blockquote>` | `quote` | Цитаты — высокоценный контент для поиска (интервью, статьи) |
+| `<dt>`, `<dd>` | `definition` | FAQ-страницы используют definition lists — пара вопрос/ответ |
+| `<figcaption>` | `paragraph` | Описания изображений — ценный текст для контекстного поиска |
+
+Требует обновления `ContentBlockType` enum в `scrapper-api.yaml` и согласования с Ask-Core.
+
+### Извлечение содержимого документов
+
+Поле `extractedText` в модели `Document` предусмотрено для текста, извлечённого из файлов (PDF, DOCX, OCR изображений).
+
+Рекомендуемая архитектура — отдельный микросервис **Ask-DocExtractor**:
+
+```
+Ask-Parser ──► parser.output ──► Ask-Crawler
+     │
+     └──► doc.input ──► Ask-DocExtractor ──► doc.output ──► Ask-Crawler
+```
+
+Причина вынесения: загрузка файлов + извлечение текста — тяжёлый IO, не должно блокировать парсинг HTML.
 
 ## DLQ
 
@@ -184,14 +272,12 @@ ask-parser/
     │   │       ├── consumer.go         # Consumer: topology, prefetch, consume loop
     │   │       └── publisher.go        # Publisher: exchange/queue declaration, publish
     │   ├── parser/
-    │   │   ├── parser.go               # Parser interface
-    │   │   ├── extractor.go            # MetadataExtractor, ContentExtractor interfaces
-    │   │   └── impl/
-    │   │       ├── parser.go           # htmlParser: объединяет extractors
-    │   │       ├── metadata.go         # Извлечение метаданных страницы
-    │   │       ├── content.go          # Извлечение блоков, ссылок, документов
-    │   │       ├── links.go            # URL-резолвинг, классификация, сниппеты
-    │   │       └── documents.go        # Определение файлов, MIME-типы
+    │   │   ├── interfaces.go           # Parser (exported) + sanitizer/extractor/normalizer (internal)
+    │   │   ├── parser.go              # htmlParser: Sanitize → Extract → Normalize
+    │   │   ├── sanitize.go            # DOM-очистка шумовых узлов
+    │   │   ├── extract.go             # Извлечение метаданных, блоков, ссылок, документов
+    │   │   ├── normalize.go           # URL-нормализация, дедупликация, очистка текста
+    │   │   └── documents.go           # Определение файлов, MIME-типы
     │   └── handler/
     │       └── handler.go              # Бизнес-логика обработки сообщений
     ├── go.mod

@@ -20,7 +20,7 @@ jobs:
           - module: ask-encoder
             script: python
 
-          - module: ask-scrapper
+          - module: ask-parser
             script: go
 
           - module: ask-ui

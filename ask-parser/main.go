@@ -11,7 +11,7 @@ import (
 	amqpimpl "ask-parser/internal/amqp/impl"
 	"ask-parser/internal/config"
 	"ask-parser/internal/handler"
-	parserimpl "ask-parser/internal/parser/impl"
+	"ask-parser/internal/parser"
 )
 
 func main() {
@@ -44,7 +44,7 @@ func main() {
 		DLQQueue:          cfg.OutputQueue + ".dlq",
 	})
 
-	askParser := parserimpl.NewParser()
+	askParser := parser.NewParser()
 	h := handler.NewHandler(askParser, publisher, logger)
 
 	broker.RegisterConsumer(amqpimpl.ConsumerConfig{

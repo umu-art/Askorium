@@ -44,7 +44,7 @@ async def main() -> None:
         input_queue = await broker.declare_queue_with_dlq(
             config.INPUT_QUEUE, config.MESSAGE_TTL_MS,
         )
-        await broker.declare_queue(config.OUTPUT_QUEUE)
+        await broker.declare_queue_with_dlq(config.OUTPUT_QUEUE)
 
         handler = MessageHandler(browser_manager, broker, config.OUTPUT_QUEUE)
         consumer = RabbitMQConsumer(input_queue, handler)
