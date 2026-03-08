@@ -51,7 +51,7 @@ runs:
       if: inputs.script == 'go' && inputs.test-only != 'true'
       shell: bash
       working-directory: ${{ inputs.module }}
-      run: go build -o ${{ inputs.module }} .
+      run: CGO_ENABLED=0 go build -o ${{ inputs.module }} .
 
     # --- Node ---
     - name: Install dependencies (Node)
