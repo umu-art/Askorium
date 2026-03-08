@@ -19,6 +19,7 @@ spec:
       containers:
         - name: ask-renderer
           image: ghcr.io/umu-art/ask-renderer:main
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080

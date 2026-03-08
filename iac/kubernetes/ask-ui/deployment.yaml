@@ -19,6 +19,7 @@ spec:
       containers:
         - name: ask-ui
           image: ghcr.io/umu-art/ask-ui:main
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 80
