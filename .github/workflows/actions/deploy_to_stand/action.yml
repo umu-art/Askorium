@@ -19,6 +19,6 @@ runs:
         kubeconfig: ${{ inputs.kubesecret }}
 
     - name: Deploy ${{ inputs.module-name }}
-      if: inputs.deployment != 'false'
+      if: inputs.deployment != 'false' && inputs.module-name != 'ask-encoder'
       shell: bash
       run: kubectl rollout restart deployment/${{ inputs.module-name }} -n askorium

@@ -5,7 +5,7 @@ go 1.25.7
 require (
 	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/omo-ri/askorium/go-renderer-api v0.0.0
-	github.com/omo-ri/askorium/go-scrapper-api v0.0.0
+	github.com/omo-ri/askorium/go-parser-api v0.0.0
 	github.com/rabbitmq/amqp091-go v1.10.0
 )
 
@@ -17,5 +17,5 @@ require (
 
 replace (
 	github.com/omo-ri/askorium/go-renderer-api => ./../api/build/go-renderer-api
-	github.com/omo-ri/askorium/go-scrapper-api => ./../api/build/go-scrapper-api
+	github.com/omo-ri/askorium/go-parser-api => ./../api/build/go-parser-api
 )

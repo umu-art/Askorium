@@ -9,11 +9,11 @@ import (
 	"time"
 
 	crawler_model "github.com/omo-ri/askorium/go-crawler-api"
+	scrapper_model "github.com/omo-ri/askorium/go-parser-api"
 	render_model "github.com/omo-ri/askorium/go-renderer-api"
-	scrapper_model "github.com/omo-ri/askorium/go-scrapper-api"
 
-	infra_amqp "ask-crawler/src/infra/amqp"
 	applib "ask-crawler/src/app/lib"
+	infra_amqp "ask-crawler/src/infra/amqp"
 )
 
 const (
@@ -82,7 +82,6 @@ func (s *CrawlerService) HandleTask(ctx context.Context, msg []byte) error {
 
 	return s.processNext(ctx, job)
 }
-
 
 func (s *CrawlerService) HandleScrapeResult(ctx context.Context, msg []byte) error {
 	var resp scrapper_model.ScrapeResponse

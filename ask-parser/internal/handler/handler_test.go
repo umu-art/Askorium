@@ -11,7 +11,7 @@ import (
 	amqpimpl "ask-parser/internal/amqp/impl"
 	"ask-parser/internal/handler"
 
-	scrappermodel "github.com/omo-ri/askorium/go-scrapper-api"
+	scrappermodel "github.com/omo-ri/askorium/go-parser-api"
 )
 
 // --- mocks ---

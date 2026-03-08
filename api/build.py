@@ -50,7 +50,7 @@ def bundle_with_redocly(input_file, output_file):
     output_file.parent.mkdir(parents=True, exist_ok=True)
     result = subprocess.run(
         ['redocly', 'bundle', str(input_file), '-o', str(output_file)],
-        capture_output=True, text=True
+        capture_output=True, text=True, check=True
     )
     if result.returncode != 0:
         log.error("redocly error: %s", result.stderr)
@@ -65,7 +65,7 @@ def download_openapi_generator(build_dir):
         return jar_file
     log.info("Downloading OpenAPI Generator CLI...")
     url = "https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/7.14.0/openapi-generator-cli-7.14.0.jar"
-    result = subprocess.run(['wget', url, '-O', str(jar_file)], capture_output=True)
+    result = subprocess.run(['wget', url, '-O', str(jar_file)], capture_output=True, check=True)
     if result.returncode != 0:
         log.error("Failed to download OpenAPI Generator CLI")
         sys.exit(1)
@@ -78,7 +78,7 @@ def generate_api(jar_file, yaml_file, config_file, output_dir):
     result = subprocess.run(
         ['java', '-jar', str(jar_file), 'generate',
          '-i', str(yaml_file), '-o', str(output_dir), '-c', str(config_file)],
-        capture_output=True, text=True
+        capture_output=True, text=True, check=True
     )
     if result.returncode != 0:
         log.error("Generation failed for %s: %s", config_file, result.stderr)
@@ -92,18 +92,18 @@ def install_generated(build_dir, langs=None):
         lang = target_dir.name.split('-')[0]
         log.info("Installing %s (%s)", target_dir.name, lang)
         if lang == "java":
-            subprocess.run(['mvn', 'clean', 'install'], cwd=target_dir)
+            subprocess.run(['mvn', 'clean', 'install'], cwd=target_dir, check=True)
         elif lang == "ts":
-            subprocess.run(['npm', 'install'], cwd=target_dir)
-            subprocess.run(['npm', 'run', 'build'], cwd=target_dir)
-            subprocess.run(['npm', 'link'], cwd=target_dir)
+            subprocess.run(['npm', 'install'], cwd=target_dir, check=True)
+            subprocess.run(['npm', 'run', 'build'], cwd=target_dir, check=True)
+            subprocess.run(['npm', 'link'], cwd=target_dir, check=True)
         elif lang == "python":
-            subprocess.run([sys.executable, '-m', 'build', '--wheel'], cwd=target_dir)
+            subprocess.run([sys.executable, '-m', 'build', '--wheel'], cwd=target_dir, check=True)
             whl_files = list((target_dir / 'dist').glob('*.whl'))
-            subprocess.run([sys.executable, '-m', 'pip', 'install', str(whl_files[0])], cwd=target_dir)
+            subprocess.run([sys.executable, '-m', 'pip', 'install', str(whl_files[0])], cwd=target_dir, check=True)
             subprocess.run(
                 [sys.executable, '-m', 'pip', 'install', '--force-reinstall', '--no-deps', str(whl_files[0])],
-                cwd=target_dir)
+                cwd=target_dir, check=True)
 
     dirs = [d for d in build_dir.glob("*-api")
             if langs is None or d.name.split('-')[0] in langs]
