@@ -5,24 +5,18 @@ generatorName: go
 
 additionalProperties:
   packageName: renderer_model
-  packageVersion: 1.0.0
-  isGoSubmodule: true
+  isGoSubmodule: false
   enumClassPrefix: true
   structPrefix: true
-  withXml: false
-  generateGoMod: false
-  generateReadme: false
-  generateInterfaces: true
+  withGoMod: true
 
 globalProperties:
   models: ''
-  apis: ''
+  apis: false
   supportingFiles:
     - utils.go
-    - client.go
-    - configuration.go
-    - response.go
     - go.mod
+    - go.sum
   modelTests: false
   apiTests: false
   modelDocs: false
