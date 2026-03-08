@@ -1,5 +1,6 @@
 sources:
   - encoder-api.yaml
+  - source-api.yaml
 target: java-ask-api
 generatorName: java
 

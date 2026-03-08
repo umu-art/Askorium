@@ -2,7 +2,7 @@ package applib
 
 import (
 	crawler_model "github.com/omo-ri/askorium/go-crawler-api"
-	scrapper_model "github.com/omo-ri/askorium/go-scrapper-api"
+	scrapper_model "github.com/omo-ri/askorium/go-parser-api"
 )
 
 func MapPage(p scrapper_model.ScrappedPage) crawler_model.ScrapedPage {
