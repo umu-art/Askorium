@@ -9,16 +9,16 @@ import org.springframework.context.annotation.Configuration;
 @RequiredArgsConstructor
 public class AmqpConfiguration {
 
-    private final AmqpProperties amqpProperties;
+    private final ScrapperTasksProperties scrapperTasksProperties;
 
     @Bean
     public Queue scrapperRequestQueue() {
-        return new Queue(amqpProperties.getScrapperRequestQueueName(), true);
+        return new Queue(scrapperTasksProperties.getScrapperRequestQueueName(), true);
     }
 
     @Bean
     public Queue scrapperResponseQueue() {
-        return new Queue(amqpProperties.getScrapperResponseQueueName(), true);
+        return new Queue(scrapperTasksProperties.getScrapperResponseQueueName(), true);
     }
 
 }

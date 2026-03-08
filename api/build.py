@@ -5,6 +5,7 @@ import logging
 import shutil
 import subprocess
 import sys
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 

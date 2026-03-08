@@ -3,13 +3,15 @@ kind: Application
 metadata:
   name: ask-temporal
   namespace: argocd
+  labels:
+    app.kubernetes.io/instance: askorium
 spec:
   destination:
     namespace: askorium
     server: https://kubernetes.default.svc
   sources:
     - repoURL: https://github.com/temporalio/helm-charts
-      targetRevision: main
+      targetRevision: 90f1cf7ae554791ecddaa9543934765e45492957
       path: charts/temporal
       helm:
         valueFiles:

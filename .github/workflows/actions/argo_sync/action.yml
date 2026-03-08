@@ -13,9 +13,9 @@ runs:
   using: "composite"
   steps:
     - name: Sync ArgoCD applications
-      uses: clowdhaus/argo-cd-action@v2
+      uses: clowdhaus/argo-cd-action/@main
       with:
-        version: 2.6.7
+        version: 3.1.5
         options: --server ${{ inputs.argocd-server }} --grpc-web --auth-token ${{ inputs.argocd-token }}
         command: app sync -l app.kubernetes.io/instance=askorium --prune --timeout 600
 
@@ -24,8 +24,8 @@ runs:
       run: sleep 10
 
     - name: Wait for ArgoCD health
-      uses: clowdhaus/argo-cd-action@v2
+      uses: clowdhaus/argo-cd-action/@main
       with:
-        version: 2.6.7
+        version: 3.1.5
         options: --server ${{ inputs.argocd-server }} --grpc-web --auth-token ${{ inputs.argocd-token }}
         command: app wait -l app.kubernetes.io/instance=askorium --health --timeout 600
