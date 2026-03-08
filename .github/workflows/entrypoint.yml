@@ -29,6 +29,9 @@ jobs:
           - module: ask-renderer
             script: python
 
+          - module: ask-crawler
+            script: go
+
     uses: ./.github/workflows/_build-module.yml
     with:
       module: ${{ matrix.module }}
