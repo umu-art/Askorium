@@ -2,67 +2,38 @@ openapi: 3.1.0
 
 info:
   title: Renderer Api
-  description: API для рендеринга страниц через Playwright.
-  version: 1.0.0
+  description: Контракт сообщений для сервиса рендеринга страниц.
+  version: 2.0.0
 
 paths:
-  /render:
-    post:
+  /stub:
+    get:
       tags:
         - renderer
-      operationId: renderPage
-      summary: Рендеринг страницы и получение HTML.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RenderRequest'
+      operationId: stub
+      summary: Заглушка для успешной генерации моделей.
       responses:
         200:
-          description: Успешный рендеринг
+          description: Успешный ответ от заглушки
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RenderResponse'
-        400:
-          description: Невалидный URL
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RenderErrorResponse'
-        403:
-          description: Доступ запрещён
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RenderErrorResponse'
-        404:
-          description: Страница не найдена
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RenderErrorResponse'
-        502:
-          description: Ошибка сети
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RenderErrorResponse'
-        504:
-          description: Таймаут
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RenderErrorResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/RenderInput'
+                  - $ref: '#/components/schemas/RenderOutput'
 
 components:
   schemas:
-    RenderRequest:
+    RenderInput:
       type: object
       required:
+        - task_id
         - url
       properties:
+        task_id:
+          type: string
+          format: uuid
+          description: Уникальный идентификатор задачи
         url:
           type: string
           format: uri
@@ -73,21 +44,41 @@ components:
           minimum: 1000
           maximum: 60000
           description: Таймаут загрузки страницы (миллисекунды)
+        metadata:
+          type: object
+          description: Сквозные данные, возвращаются без изменений
+          additionalProperties: true
 
-    RenderResponse:
+    RenderOutput:
       type: object
       required:
-        - html
-        - elapsed_ms
+        - task_id
+        - url
+        - success
       properties:
+        task_id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        success:
+          type: boolean
+          description: Итоговый результат рендеринга
         html:
           type: string
-          description: HTML-содержимое страницы после рендеринга
+          description: HTML-содержимое страницы (при успехе)
         elapsed_ms:
           type: integer
-          description: Время рендеринга в миллисекундах
+          description: Время рендеринга в миллисекундах (при успехе)
+        error:
+          description: Информация об ошибке (при неудаче)
+          $ref: '#/components/schemas/RenderError'
+        metadata:
+          type: object
+          additionalProperties: true
 
-    RenderErrorResponse:
+    RenderError:
       type: object
       required:
         - code

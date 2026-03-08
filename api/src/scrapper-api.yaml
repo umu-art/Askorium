@@ -18,51 +18,10 @@ paths:
           content:
             application/json:
               schema:
-                oneOf:
-                  - $ref: '#/components/schemas/ScrapeRequest'
-                  - $ref: '#/components/schemas/ScrapeResponse'
+                $ref: '#/components/schemas/ScrapeResponse'
 
 components:
   schemas:
-    ScrapeRequest:
-      type: object
-      required:
-        - task_id
-        - url
-      properties:
-        task_id:
-          type: string
-          format: uuid
-          description: Уникальный идентификатор задачи
-        url:
-          type: string
-          format: uri
-          description: URL для парсинга
-        options:
-          $ref: '#/components/schemas/ScrapeOptions'
-        metadata:
-          type: object
-          description: Сквозные данные, возвращаются без изменений
-          additionalProperties: true
-
-    ScrapeOptions:
-      type: object
-      properties:
-        timeout_ms:
-          type: integer
-          default: 30000
-          description: Таймаут загрузки страницы (миллисекунды)
-        max_retries:
-          type: integer
-          default: 3
-          description: Максимальное количество повторных попыток
-        extract_links:
-          type: boolean
-          default: false
-        extract_documents:
-          type: boolean
-          default: false
-
     ScrapeResponse:
       type: object
       required:

@@ -5,13 +5,10 @@ generatorName: go
 
 additionalProperties:
   packageName: scrapper_model
-  packageVersion: 1.0.0
-  isGoSubmodule: true
+  isGoSubmodule: false
   enumClassPrefix: true
   structPrefix: true
-  withXml: false
-  generateGoMod: false
-  generateReadme: false
+  withGoMod: true
 
 globalProperties:
   models: ''
@@ -19,6 +16,7 @@ globalProperties:
   supportingFiles:
     - utils.go
     - go.mod
+    - go.sum
   modelTests: false
   apiTests: false
   modelDocs: false

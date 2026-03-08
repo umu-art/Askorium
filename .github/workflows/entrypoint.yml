@@ -20,11 +20,14 @@ jobs:
           - module: ask-encoder
             script: python
 
-          - module: ask-scrapper
+          - module: ask-parser
             script: go
 
           - module: ask-ui
             script: node
+
+          - module: ask-renderer
+            script: python
 
     uses: ./.github/workflows/_build-module.yml
     with:

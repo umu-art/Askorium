@@ -1,0 +1,24 @@
+sources:
+  - renderer-api.yaml
+target: python-renderer-api
+generatorName: python-fastapi
+
+additionalProperties:
+  packageName: python_renderer_api
+  fastapiImplementationPackage: python_renderer_api
+
+globalProperties:
+  supportingFiles:
+    - setup.cfg
+    - pyproject.toml
+    - requirements.txt
+    - __init__.py
+    - extra_models.py
+
+  models: ''
+  apis: ''
+
+  modelTests: false
+  apiTests: false
+  modelDocs: false
+  apiDocs: false
