@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	scrappermodel "github.com/omo-ri/askorium/go-scrapper-api"
+	scrappermodel "github.com/omo-ri/askorium/go-parser-api"
 )
 
 const minBlockTextLength = 2

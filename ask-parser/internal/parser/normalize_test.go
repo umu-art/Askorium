@@ -3,7 +3,7 @@ package parser
 import (
 	"testing"
 
-	scrappermodel "github.com/omo-ri/askorium/go-scrapper-api"
+	scrappermodel "github.com/omo-ri/askorium/go-parser-api"
 )
 
 func TestFilterShortBlocks(t *testing.T) {

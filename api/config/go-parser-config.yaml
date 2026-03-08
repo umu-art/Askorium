@@ -1,10 +1,10 @@
 sources:
-  - scrapper-api.yaml
-target: go-scrapper-api
+  - parser-api.yaml
+target: go-parser-api
 generatorName: go
 
 additionalProperties:
-  packageName: scrapper_model
+  packageName: parser_model
   isGoSubmodule: false
   enumClassPrefix: true
   structPrefix: true

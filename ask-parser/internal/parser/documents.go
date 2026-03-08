@@ -4,7 +4,7 @@ import (
 	"path"
 	"strings"
 
-	scrappermodel "github.com/omo-ri/askorium/go-scrapper-api"
+	scrappermodel "github.com/omo-ri/askorium/go-parser-api"
 )
 
 var documentExtensions = map[string]string{

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	scrappermodel "github.com/omo-ri/askorium/go-scrapper-api"
+	scrappermodel "github.com/omo-ri/askorium/go-parser-api"
 )
 
 type htmlParser struct {

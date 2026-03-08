@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: ask-renderer
+  name: ask-crawler
   namespace: argocd
 spec:
   destination:
     namespace: askorium
     server: https://kubernetes.default.svc
   source:
-    path: iac/kubernetes/ask-renderer
+    path: iac/kubernetes/ask-crawler
     repoURL: https://github.com/umu-art/askorium
     targetRevision: HEAD
     directory:

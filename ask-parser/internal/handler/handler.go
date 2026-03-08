@@ -9,8 +9,8 @@ import (
 	amqpimpl "ask-parser/internal/amqp/impl"
 	"ask-parser/internal/parser"
 
+	scrappermodel "github.com/omo-ri/askorium/go-parser-api"
 	renderermodel "github.com/omo-ri/askorium/go-renderer-api"
-	scrappermodel "github.com/omo-ri/askorium/go-scrapper-api"
 )
 
 func NewHandler(p parser.Parser, publisher amqp.MessagePublisher, logger *slog.Logger) amqpimpl.Handler {

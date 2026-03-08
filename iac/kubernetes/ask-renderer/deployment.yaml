@@ -1,50 +1,54 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ask-scrapper
+  name: ask-renderer
   namespace: askorium
   labels:
-    app: ask-scrapper
+    app: ask-renderer
 spec:
-  replicas: 0
+  replicas: 1
   revisionHistoryLimit: 2
   selector:
     matchLabels:
-      app: ask-scrapper
+      app: ask-renderer
   template:
     metadata:
       labels:
-        app: ask-scrapper
+        app: ask-renderer
     spec:
       containers:
-        - name: ask-scrapper
-          image: ghcr.io/umu-art/ask-scrapper:main
+        - name: ask-renderer
+          image: ghcr.io/umu-art/ask-renderer:main
+          ports:
+            - name: http
+              containerPort: 8080
+
           envFrom:
             - secretRef:
-                name: ask-scrapper
+                name: ask-renderer
 
           livenessProbe:
             httpGet:
-              path: /health
-              port: 8000
+              path: /
+              port: 8080
             initialDelaySeconds: 10
-            periodSeconds: 30
+            periodSeconds: 15
             failureThreshold: 3
+
           readinessProbe:
             httpGet:
-              path: /health
-              port: 8000
-            initialDelaySeconds: 5
-            periodSeconds: 15
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
             failureThreshold: 3
 
           resources:
             requests:
               cpu: "200m"
-              memory: "256Mi"
+              memory: "500M"
             limits:
-              cpu: "1000m"
-              memory: "512Mi"
+              memory: "1G"
 
           securityContext:
             allowPrivilegeEscalation: false

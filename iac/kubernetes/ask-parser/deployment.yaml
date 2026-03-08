@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ask-parser
+  namespace: askorium
+  labels:
+    app: ask-parser
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: ask-parser
+  template:
+    metadata:
+      labels:
+        app: ask-parser
+    spec:
+      containers:
+        - name: ask-parser
+          image: ghcr.io/umu-art/ask-parser:main
+          ports:
+            - name: http
+              containerPort: 8080
+
+          envFrom:
+            - secretRef:
+                name: ask-parser
+
+#          livenessProbe:
+#            httpGet:
+#              path: /
+#              port: 8080
+#            initialDelaySeconds: 10
+#            periodSeconds: 15
+#            failureThreshold: 3
+#
+#          readinessProbe:
+#            httpGet:
+#              path: /
+#              port: 8080
+#            initialDelaySeconds: 10
+#            periodSeconds: 10
+#            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: "20m"
+              memory: "50M"
+            limits:
+              memory: "500M"
+
+          securityContext:
+            allowPrivilegeEscalation: false
+
+      imagePullSecrets:
+        - name: github-container-registry
+
+      restartPolicy: Always

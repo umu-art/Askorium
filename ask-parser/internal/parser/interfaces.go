@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	scrappermodel "github.com/omo-ri/askorium/go-scrapper-api"
+	scrappermodel "github.com/omo-ri/askorium/go-parser-api"
 )
 
 // Parser converts raw HTML into a structured page.
