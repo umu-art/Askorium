@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	defaultInputQueue    = "render.output"
-	defaultOutputQueue   = "parser.output"
+	defaultInputQueue    = "askorium.render.output"
+	defaultOutputQueue   = "askorium.parser.output"
 	defaultPrefetchCount = "10"
 	defaultLogLevel      = "info"
 )

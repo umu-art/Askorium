@@ -31,12 +31,12 @@ func main() {
 	broker := infra_amqp.NewBroker(conn, logger)
 
 	renderPublisher := broker.RegisterPublisher(amqpimpl.PublisherConfig{
-		DefaultRoutingKey: "render.requests",
+		DefaultRoutingKey: "askorium.render.input",
 		Durable:           true,
 	})
 
 	eventPublisher := broker.RegisterPublisher(amqpimpl.PublisherConfig{
-		Exchange:     "crawler.events",
+		Exchange:     "askorium.crawler.output",
 		ExchangeKind: "topic",
 		Durable:      false,
 	})
@@ -44,12 +44,12 @@ func main() {
 	crawlerService := app.NewCrawlerService(renderPublisher, eventPublisher, logger)
 
 	broker.RegisterConsumer(amqpimpl.ConsumerConfig{
-		Queue:   "crawler.tasks",
+		Queue:   "askorium.crawler.input",
 		Durable: true,
 	}, crawlerService.HandleTask)
 
 	broker.RegisterConsumer(amqpimpl.ConsumerConfig{
-		Queue:   "scraper.results",
+		Queue:   "askorium.parser.output",
 		Durable: true,
 	}, crawlerService.HandleScrapeResult)
 
