@@ -40,11 +40,9 @@ jobs:
     secrets: inherit
 
   sync-iac:
-    needs:
-      - build
     name: Sync IaC (ArgoCD)
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name != 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
       - name: Checkout code
