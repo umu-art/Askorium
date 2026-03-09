@@ -89,7 +89,7 @@ func (c *Consumer) declareTopology(ch *amqp.Channel) error {
 	var queueArgs amqp.Table
 	if c.config.DLXExchange != "" {
 		queueArgs = amqp.Table{"x-dead-letter-exchange": c.config.DLXExchange}
-		if err := ch.ExchangeDeclare(c.config.DLXExchange, "direct", true, false, false, false, nil); err != nil {
+		if err := ch.ExchangeDeclare(c.config.DLXExchange, "fanout", true, false, false, false, nil); err != nil {
 			return fmt.Errorf("amqp consumer: declare dlx %q: %w", c.config.DLXExchange, err)
 		}
 		if c.config.DLQQueue != "" {
