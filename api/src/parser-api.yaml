@@ -6,11 +6,11 @@ info:
   version: 1.0.0
 
 paths:
-  /stub:
+  /parser-stub:
     get:
       tags:
         - scrapper
-      operationId: stub
+      operationId: parser-stub
       summary: Заглушка для успешной генерации моделей.
       responses:
         200:

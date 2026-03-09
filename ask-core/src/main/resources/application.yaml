@@ -3,9 +3,11 @@ askorium:
     self-url: ${ASK_CORE_URL:http://localhost:8080}
     encoder-url: ${ASK_ENCODER_URL:http://localhost:8000}
 
-  amqp:
-    scrapper-request-queue-name: askorium.scrapper.request
-    scrapper-response-queue-name: askorium.scrapper.response
+  scrapper:
+    scrapper-request-queue-name: askorium.crawler.input
+    scrapper-response-queue-name: askorium.crawler.output
+    redis-key-prefix: askorium.scrapping-tasks
+    wait-timeout: 10m
 
   index:
     text-index-name: askorium-texts

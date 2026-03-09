@@ -15,9 +15,11 @@ type ConsumerConfig struct {
 	Exchange string
 	// ExchangeKind — тип exchange: "direct", "topic", "fanout". По умолчанию "direct".
 	ExchangeKind string
-	RoutingKey string
-	Prefetch int
-	Durable bool
+	RoutingKey   string
+	Prefetch     int
+	Durable      bool
+	DLXExchange  string
+	DLQQueue     string
 }
 
 type Consumer struct {
@@ -84,7 +86,23 @@ func (c *Consumer) declareTopology(ch *amqp.Channel) error {
 		}
 	}
 
-	if _, err := ch.QueueDeclare(c.config.Queue, durable, false, false, false, nil); err != nil {
+	var queueArgs amqp.Table
+	if c.config.DLXExchange != "" {
+		queueArgs = amqp.Table{"x-dead-letter-exchange": c.config.DLXExchange}
+		if err := ch.ExchangeDeclare(c.config.DLXExchange, "direct", true, false, false, false, nil); err != nil {
+			return fmt.Errorf("amqp consumer: declare dlx %q: %w", c.config.DLXExchange, err)
+		}
+		if c.config.DLQQueue != "" {
+			if _, err := ch.QueueDeclare(c.config.DLQQueue, true, false, false, false, nil); err != nil {
+				return fmt.Errorf("amqp consumer: declare dlq %q: %w", c.config.DLQQueue, err)
+			}
+			if err := ch.QueueBind(c.config.DLQQueue, "", c.config.DLXExchange, false, nil); err != nil {
+				return fmt.Errorf("amqp consumer: bind dlq %q: %w", c.config.DLQQueue, err)
+			}
+		}
+	}
+
+	if _, err := ch.QueueDeclare(c.config.Queue, durable, false, false, false, queueArgs); err != nil {
 		return fmt.Errorf("amqp consumer: declare queue %q: %w", c.config.Queue, err)
 	}
 

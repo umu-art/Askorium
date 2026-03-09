@@ -49,8 +49,10 @@ func main() {
 	}, crawlerService.HandleTask)
 
 	broker.RegisterConsumer(amqpimpl.ConsumerConfig{
-		Queue:   "askorium.parser.output",
-		Durable: true,
+		Queue:       "askorium.parser.output",
+		Durable:     true,
+		DLXExchange: "askorium.parser.output.dlx",
+		DLQQueue:    "askorium.parser.output.dlq",
 	}, crawlerService.HandleScrapeResult)
 
 	logger.Info("crawler started")

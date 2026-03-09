@@ -20,11 +20,11 @@ info:
     `page.scraped* → task.completed | task.failed`
 
 paths:
-  /stub:
+  /crawler-stub:
     get:
       tags:
         - scrapper
-      operationId: stub
+      operationId: crawler-stub
       summary: Заглушка для успешной генерации моделей.
       responses:
         200:
