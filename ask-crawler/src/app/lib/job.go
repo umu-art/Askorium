@@ -3,13 +3,17 @@ package applib
 import (
 	"sync"
 	"time"
+
+	crawler_model "github.com/omo-ri/askorium/go-crawler-api"
 )
 
+// URLEntry — элемент очереди обхода.
 type URLEntry struct {
 	URL   string
 	Depth int32
 }
 
+// JobState хранит состояние одной задачи краулинга в памяти.
 type JobState struct {
 	TaskID   string
 	Domain   string
@@ -22,6 +26,7 @@ type JobState struct {
 	mu           sync.Mutex
 	visited      map[string]bool
 	frontier     []URLEntry
+	pages        []crawler_model.ScrappedPage
 	pagesScraped int32
 	pagesFailed  int32
 }
@@ -38,6 +43,7 @@ func NewJobState(taskID, domain string, maxDepth, maxPages int32, metadata map[s
 	}
 }
 
+// Enqueue добавляет URL в очередь если он ещё не был посещён.
 func (j *JobState) Enqueue(url string, depth int32) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
@@ -48,6 +54,7 @@ func (j *JobState) Enqueue(url string, depth int32) {
 	j.frontier = append(j.frontier, URLEntry{URL: url, Depth: depth})
 }
 
+// Dequeue извлекает следующий URL из очереди. Возвращает false если очередь пуста.
 func (j *JobState) Dequeue() (URLEntry, bool) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
@@ -59,6 +66,7 @@ func (j *JobState) Dequeue() (URLEntry, bool) {
 	return entry, true
 }
 
+// LimitReached возвращает true если достигнут лимит страниц.
 func (j *JobState) LimitReached() bool {
 	j.mu.Lock()
 	defer j.mu.Unlock()
@@ -77,6 +85,23 @@ func (j *JobState) IncrFailed() {
 	j.mu.Unlock()
 }
 
+// AddPage добавляет успешно обработанную страницу в накопитель.
+func (j *JobState) AddPage(page crawler_model.ScrappedPage) {
+	j.mu.Lock()
+	j.pages = append(j.pages, page)
+	j.mu.Unlock()
+}
+
+// Pages возвращает копию накопленных страниц.
+func (j *JobState) Pages() []crawler_model.ScrappedPage {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	result := make([]crawler_model.ScrappedPage, len(j.pages))
+	copy(result, j.pages)
+	return result
+}
+
+// Stats возвращает текущую статистику: scraped, failed, frontier size.
 func (j *JobState) Stats() (scraped, failed, frontier int32) {
 	j.mu.Lock()
 	defer j.mu.Unlock()

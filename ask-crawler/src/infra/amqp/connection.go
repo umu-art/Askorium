@@ -97,7 +97,7 @@ func (c *Connection) watchAndReconnect(ctx context.Context) {
 func (c *Connection) dialWithRetry(ctx context.Context) (*amqp.Connection, error) {
 	delay := reconnectDelay
 	for {
-		c.logger.Info("amqp: connecting", "url", c.url)
+		c.logger.Info("amqp: connecting")
 		conn, err := amqp.Dial(c.url)
 		if err == nil {
 			return conn, nil

@@ -36,9 +36,8 @@ func main() {
 	})
 
 	eventPublisher := broker.RegisterPublisher(amqpimpl.PublisherConfig{
-		Exchange:     "askorium.crawler.output",
-		ExchangeKind: "topic",
-		Durable:      false,
+		DefaultRoutingKey: "askorium.crawler.output",
+		Durable:           true,
 	})
 
 	crawlerService := app.NewCrawlerService(renderPublisher, eventPublisher, logger)
