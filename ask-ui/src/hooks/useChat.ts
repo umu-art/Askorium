@@ -1,7 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { Message } from '@/types'
 import { generateId } from '@/lib/utils'
-import { sendMessage } from '@/lib/mockApi'
+import { searchApi, sourceApi, SearchStatus } from '@/lib/api'
+
+const POLL_INTERVAL_MS = 500
 
 interface UseChatReturn {
   messages: Message[]
@@ -12,28 +14,29 @@ interface UseChatReturn {
   resetChat: () => void
 }
 
-/**
- * Core chat state machine.
- *
- * Encapsulates:
- * - Message list management
- * - Loading state
- * - Input value (lifted here so WelcomeScreen and ChatPage share the same input state)
- * - Submit handler (optimistically appends user message, then awaits API)
- * - Reset (for "New chat" button)
- *
- * The API call is abstracted behind sendMessage() in mockApi.ts,
- * making it trivial to swap in real fetch calls later.
- */
 export function useChat(): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [inputValue, setInputValue] = useState('')
+  const sourceIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    sourceApi.listSources().then(sources => {
+      if (sources.length > 0 && sources[0].id) {
+        sourceIdRef.current = sources[0].id
+      } else {
+        sourceIdRef.current = crypto.randomUUID()
+        console.warn('No sources found, using random sourceId:', sourceIdRef.current)
+      }
+    }).catch(() => {
+      sourceIdRef.current = crypto.randomUUID()
+      console.warn('Failed to load sources, using random sourceId:', sourceIdRef.current)
+    })
+  }, [])
 
   const handleSubmit = useCallback(async (content: string) => {
     if (!content.trim() || isLoading) return
 
-    // Optimistic: append user message immediately
     const userMessage: Message = {
       id: generateId(),
       role: 'user',
@@ -46,10 +49,23 @@ export function useChat(): UseChatReturn {
     setIsLoading(true)
 
     try {
-      const assistantMessage = await sendMessage(content.trim())
+      const sourceId = sourceIdRef.current ?? crypto.randomUUID()
+
+      const { queryId } = await searchApi.createSearchQuery({
+        searchCreateRequest: { query: content.trim(), sourceId },
+      })
+
+      const result = await pollSearchResult(queryId)
+
+      const assistantMessage: Message = {
+        id: generateId(),
+        role: 'assistant',
+        content: result.answer ?? 'Не удалось получить ответ.',
+        sources: result.sources,
+        timestamp: new Date(),
+      }
       setMessages(prev => [...prev, assistantMessage])
-    } catch (error) {
-      // Append a graceful error message rather than crashing the UI
+    } catch {
       const errorMessage: Message = {
         id: generateId(),
         role: 'assistant',
@@ -75,5 +91,16 @@ export function useChat(): UseChatReturn {
     setInputValue,
     handleSubmit,
     resetChat,
+  }
+}
+
+async function pollSearchResult(queryId: string) {
+  while (true) {
+    const result = await searchApi.getSearchQueryResult({ queryId })
+
+    if (result.status === SearchStatus.DONE) return result
+    if (result.status === SearchStatus.FAILED) throw new Error('Search failed')
+
+    await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS))
   }
 }

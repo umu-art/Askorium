@@ -1,9 +1,10 @@
 import { ExternalLink } from 'lucide-react'
-import type { Source } from '@/types'
-import { cn } from '@/lib/utils'
+import type { SourceSnippet } from '@/lib/api'
+import { cn, extractDomain } from '@/lib/utils'
 
 interface SourceCardProps {
-  source: Source
+  source: SourceSnippet
+  index: number
   className?: string
 }
 
@@ -14,7 +15,7 @@ interface SourceCardProps {
  * where citations are numbered inline in the text and the cards are listed below.
  * Cards are interactive (hover state) to signal they are clickable.
  */
-export function SourceCard({ source, className }: SourceCardProps) {
+export function SourceCard({ source, index, className }: SourceCardProps) {
   return (
     <a
       href={source.url}
@@ -27,11 +28,11 @@ export function SourceCard({ source, className }: SourceCardProps) {
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400',
         className
       )}
-      aria-label={`Источник ${source.id}: ${source.title}`}
+      aria-label={`Источник ${index}: ${source.title}`}
     >
       {/* Citation number */}
       <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-gray-200 text-[10px] font-bold text-gray-500 transition-colors group-hover:bg-brand-100 group-hover:text-brand-600">
-        {source.id}
+        {index}
       </span>
 
       {/* Title + domain */}
@@ -39,7 +40,7 @@ export function SourceCard({ source, className }: SourceCardProps) {
         <p className="line-clamp-2 text-xs font-medium leading-snug text-gray-700 transition-colors group-hover:text-brand-700">
           {source.title}
         </p>
-        <p className="mt-0.5 truncate text-[10px] text-gray-400">{source.domain}</p>
+        <p className="mt-0.5 truncate text-[10px] text-gray-400">{extractDomain(source.url)}</p>
       </div>
 
       {/* External link icon */}
