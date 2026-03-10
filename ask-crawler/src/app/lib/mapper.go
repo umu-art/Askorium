@@ -5,8 +5,8 @@ import (
 	scrapper_model "github.com/omo-ri/askorium/go-parser-api"
 )
 
-func MapPage(p scrapper_model.ScrappedPage) crawler_model.ScrapedPage {
-	page := crawler_model.ScrapedPage{
+func MapPage(p scrapper_model.ScrappedPage) crawler_model.ScrappedPage {
+	page := crawler_model.ScrappedPage{
 		Url:         p.Url,
 		Title:       p.Title,
 		Description: p.Description,

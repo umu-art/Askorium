@@ -104,24 +104,24 @@ func (s *CrawlerService) HandleScrapeResult(ctx context.Context, msg []byte) err
 	}
 
 	if resp.Success && resp.Page != nil {
+		page := applib.MapPage(*resp.Page)
+
+		// Сначала enqueue ссылки — чтобы frontier_size в stats был актуальным
 		s.enqueueLinks(job, resp.Page.Links)
 		job.IncrScraped()
-
-		if err := s.publishPageScraped(ctx, job, resp); err != nil {
-			return err
-		}
+		job.AddPage(page)
 	} else {
 		job.IncrFailed()
 		s.logger.Warn("crawler: scrape failed", "task_id", resp.TaskId, "error", resp.Error)
 	}
 
 	if job.LimitReached() {
-		return s.finishJob(ctx, job, crawler_model.COMPLETIONREASON_MAX_PAGES_REACHED)
+		return s.completeJob(ctx, job, crawler_model.COMPLETIONREASON_MAX_PAGES_REACHED)
 	}
 
 	entry, ok := job.Dequeue()
 	if !ok {
-		return s.finishJob(ctx, job, crawler_model.COMPLETIONREASON_FRONTIER_EMPTY)
+		return s.completeJob(ctx, job, crawler_model.COMPLETIONREASON_FRONTIER_EMPTY)
 	}
 	return s.sendToRenderer(ctx, job, entry)
 }
@@ -129,7 +129,7 @@ func (s *CrawlerService) HandleScrapeResult(ctx context.Context, msg []byte) err
 func (s *CrawlerService) processNext(ctx context.Context, job *applib.JobState) error {
 	entry, ok := job.Dequeue()
 	if !ok {
-		return s.finishJob(ctx, job, crawler_model.COMPLETIONREASON_FRONTIER_EMPTY)
+		return s.completeJob(ctx, job, crawler_model.COMPLETIONREASON_FRONTIER_EMPTY)
 	}
 	return s.sendToRenderer(ctx, job, entry)
 }
@@ -143,15 +143,14 @@ func (s *CrawlerService) sendToRenderer(ctx context.Context, job *applib.JobStat
 		)
 		next, ok := job.Dequeue()
 		if !ok {
-			return s.finishJob(ctx, job, crawler_model.COMPLETIONREASON_MAX_DEPTH_REACHED)
+			return s.completeJob(ctx, job, crawler_model.COMPLETIONREASON_MAX_DEPTH_REACHED)
 		}
 		return s.sendToRenderer(ctx, job, next)
 	}
 
 	renderInput := render_model.RenderInput{
-		TaskId: job.TaskID,
-		Url:    entry.URL,
-		// TODO: добавить depth в scrapper контракт явно.
+		TaskId:   job.TaskID,
+		Url:      entry.URL,
 		Metadata: map[string]interface{}{"depth": entry.Depth},
 	}
 
@@ -176,41 +175,22 @@ func (s *CrawlerService) enqueueLinks(job *applib.JobState, links []scrapper_mod
 		if l.Type != scrapper_model.LINKTYPE_INTERNAL {
 			continue
 		}
-		// TODO: пробросить depth явно через scrapper контракт.
 		job.Enqueue(l.Href, 1)
 	}
 }
 
-func (s *CrawlerService) publishPageScraped(ctx context.Context, job *applib.JobState, resp scrapper_model.ScrapeResponse) error {
-	scraped, failed, frontier := job.Stats()
-	page := applib.MapPage(*resp.Page)
-	depth := int32(0)
-
-	event := crawler_model.CrawlEvent{
-		TaskId:    resp.TaskId,
-		Type:      crawler_model.CRAWLEVENTTYPE_PAGE_SCRAPED,
-		Timestamp: time.Now().UTC(),
-		Url:       &resp.Page.Url,
-		Depth:     &depth,
-		Page:      &page,
-		Stats: &crawler_model.CrawlProgressStats{
-			PagesScraped: &scraped,
-			PagesFailed:  &failed,
-			FrontierSize: &frontier,
-		},
-	}
-
-	return s.publishEvent(ctx, event, fmt.Sprintf("%s.page.scraped", resp.TaskId))
-}
-
-func (s *CrawlerService) finishJob(ctx context.Context, job *applib.JobState, reason crawler_model.CompletionReason) error {
+// completeJob публикует task.completed со всеми накопленными страницами.
+func (s *CrawlerService) completeJob(ctx context.Context, job *applib.JobState, reason crawler_model.CompletionReason) error {
 	scraped, failed, _ := job.Stats()
 	frontier := int32(0)
+	pages := job.Pages()
 
 	event := crawler_model.CrawlEvent{
-		TaskId:    job.TaskID,
-		Type:      crawler_model.CRAWLEVENTTYPE_TASK_COMPLETED,
-		Timestamp: time.Now().UTC(),
+		TaskId:           job.TaskID,
+		Type:             crawler_model.CRAWLEVENTTYPE_TASK_COMPLETED,
+		Timestamp:        time.Now().UTC(),
+		Pages:            pages,
+		CompletionReason: &reason,
 		Stats: &crawler_model.CrawlProgressStats{
 			PagesScraped: &scraped,
 			PagesFailed:  &failed,
@@ -222,17 +202,55 @@ func (s *CrawlerService) finishJob(ctx context.Context, job *applib.JobState, re
 		return err
 	}
 
-	s.jobsMu.Lock()
-	delete(s.jobs, job.TaskID)
-	s.jobsMu.Unlock()
-
-	s.logger.Info("crawler: task finished",
+	s.removeJob(job.TaskID)
+	s.logger.Info("crawler: task completed",
 		"task_id", job.TaskID,
 		"reason", reason,
 		"pages_scraped", scraped,
 		"pages_failed", failed,
 	)
 	return nil
+}
+
+// failJob публикует task.failed с описанием ошибки.
+func (s *CrawlerService) failJob(ctx context.Context, job *applib.JobState, code crawler_model.CrawlerErrorCode, message string) error {
+	scraped, failed, _ := job.Stats()
+	frontier := int32(0)
+
+	crawlerErr := crawler_model.CrawlerError{
+		Code:    code,
+		Message: message,
+	}
+
+	event := crawler_model.CrawlEvent{
+		TaskId:    job.TaskID,
+		Type:      crawler_model.CRAWLEVENTTYPE_TASK_FAILED,
+		Timestamp: time.Now().UTC(),
+		Error:     &crawlerErr,
+		Stats: &crawler_model.CrawlProgressStats{
+			PagesScraped: &scraped,
+			PagesFailed:  &failed,
+			FrontierSize: &frontier,
+		},
+	}
+
+	if err := s.publishEvent(ctx, event, fmt.Sprintf("%s.task.failed", job.TaskID)); err != nil {
+		return err
+	}
+
+	s.removeJob(job.TaskID)
+	s.logger.Error("crawler: task failed",
+		"task_id", job.TaskID,
+		"code", code,
+		"message", message,
+	)
+	return nil
+}
+
+func (s *CrawlerService) removeJob(taskID string) {
+	s.jobsMu.Lock()
+	delete(s.jobs, taskID)
+	s.jobsMu.Unlock()
 }
 
 func (s *CrawlerService) publishEvent(ctx context.Context, event crawler_model.CrawlEvent, routingKey string) error {

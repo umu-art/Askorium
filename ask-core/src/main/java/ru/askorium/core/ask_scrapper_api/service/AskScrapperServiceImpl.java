@@ -7,6 +7,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
+import ru.askorium.api.model.CrawlEvent;
 import ru.askorium.api.model.CrawlTaskRequest;
 import ru.askorium.api.model.ScrapeResponse;
 import ru.askorium.api.model.ScrappedPage;
@@ -15,6 +16,8 @@ import ru.askorium.core.ask_scrapper_api.config.ScrapperTasksProperties;
 
 import java.util.List;
 import java.util.UUID;
+
+import static java.util.Objects.nonNull;
 
 @Slf4j
 @Service
@@ -62,28 +65,28 @@ public class AskScrapperServiceImpl implements AskScrapperService {
             }
 
             var responseKey = prefix + ":" + request.getTaskId() + ":response";
-            var response = redissonClient.<ScrapeResponse>getBucket(responseKey).get();
+            var response = redissonClient.<CrawlEvent>getBucket(responseKey).get();
 
             redissonClient.getBucket(responseKey).delete();
 
-            if (Boolean.FALSE.equals(response.getSuccess())) {
+            if (nonNull(response.getError())) {
                 log.warn("Scrape task failed for taskId: {}. Error: {}", request.getTaskId(), response.getError());
                 return List.of();
             }
 
-            return List.of(response.getPage());
+            return response.getPages();
         } finally {
             semaphore.delete();
         }
     }
 
     @RabbitListener(queues = "#{scrapperResponseQueue.name}")
-    public void handleScrappedPage(ScrapeResponse scrapeResponse) {
-        var taskId = scrapeResponse.getTaskId();
+    public void handleScrappedPage(CrawlEvent crawlEvent) {
+        var taskId = crawlEvent.getTaskId();
         var prefix = scrapperTasksProperties.getRedisKeyPrefix();
 
-        redissonClient.<ScrapeResponse>getBucket(prefix + ":" + taskId + ":response")
-                .set(scrapeResponse, scrapperTasksProperties.getWaitTimeout());
+        redissonClient.<CrawlEvent>getBucket(prefix + ":" + taskId + ":response")
+                .set(crawlEvent, scrapperTasksProperties.getWaitTimeout());
 
         redissonClient.getSemaphore(prefix + ":" + taskId + ":semaphore").release();
     }

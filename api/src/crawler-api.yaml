@@ -9,9 +9,7 @@ info:
     ## Входящие сообщения (External → Crawler)
 
     - `CrawlTaskRequest` — запустить обход домена
-
     - `CrawlTaskCancel` — отменить активную задачу
-
 
     ## Исходящие сообщения (Crawler → External)
     События публикуются по мере обхода. Тип определяется по полю `type`.
@@ -36,7 +34,6 @@ paths:
                   - $ref: '#/components/schemas/CrawlTaskRequest'
                   - $ref: '#/components/schemas/CrawlTaskCancel'
                   - $ref: '#/components/schemas/CrawlEvent'
-                  - $ref: '#/components/schemas/ScrapedPage'
 
 components:
   schemas:
@@ -160,12 +157,15 @@ components:
         depth: # page.scraped
           type: integer
           description: Глубина страницы от seed_urls
-        page: # page.scraped
-          $ref: "#/components/schemas/ScrapedPage"
-        error: # task.failed
-          $ref: "#/components/schemas/CrawlerError"
+        pages: # task.completed — все страницы задачи
+          type: array
+          description: Все успешно обработанные страницы задачи
+          items:
+            $ref: "./parser-api.yaml#/components/schemas/ScrappedPage"
         completion_reason: # task.completed
           $ref: "#/components/schemas/CompletionReason"
+        error: # task.failed
+          $ref: "#/components/schemas/CrawlerError"
         stats:
           $ref: "#/components/schemas/CrawlProgressStats"
 
@@ -203,120 +203,6 @@ components:
           type: integer
           description: Общее время выполнения задачи в миллисекундах
 
-    ScrapedPage:
-      type: object
-      required:
-        - url
-        - title
-        - blocks
-      properties:
-        url:
-          type: string
-          description: Финальный URL страницы (после редиректов)
-        title:
-          type: string
-          description: Заголовок страницы
-        description:
-          type: string
-          description: Мета-описание страницы
-        previewUrl:
-          type: string
-          description: Ссылка на превью (Open Graph image и т.п.)
-        iconUrl:
-          type: string
-          description: Ссылка на favicon
-        language:
-          type: string
-          description: Язык страницы (например "ru", "en"), если определён
-        lastModified:
-          type: string
-          format: date-time
-          description: Дата последнего изменения, если доступна
-        blocks:
-          type: array
-          description: Логические блоки текста (заголовки, абзацы, элементы списков)
-          items:
-            $ref: "#/components/schemas/ContentBlock"
-        links:
-          type: array
-          description: Ссылки, найденные на странице
-          items:
-            $ref: "#/components/schemas/Link"
-        documents:
-          type: array
-          description: Вложения (изображения, PDF и т.п.)
-          items:
-            $ref: "#/components/schemas/Document"
-
-    ContentBlock:
-      type: object
-      required:
-        - type
-        - text
-      properties:
-        htmlId:
-          type: string
-          description: Значение атрибута id элемента, если есть
-        type:
-          $ref: "#/components/schemas/ContentBlockType"
-        headingLevel:
-          type: integer
-          minimum: 1
-          maximum: 6
-          description: Уровень заголовка (только для type=heading)
-        text:
-          type: string
-          description: Очищённый текст блока
-
-    Link:
-      type: object
-      required:
-        - href
-        - type
-        - position
-      properties:
-        href:
-          type: string
-          description: Целевой URL ссылки
-        type:
-          $ref: "#/components/schemas/LinkType"
-        anchorText:
-          type: string
-          description: Текст анкора, если есть
-        contextBlockId:
-          type: string
-          description: htmlId блока, внутри которого находится ссылка
-        position:
-          type: integer
-          description: Начальная позиция ссылки внутри текста блока
-        snippet:
-          type: string
-          description: Короткий контекст вокруг ссылки
-
-    Document:
-      type: object
-      required:
-        - url
-        - mimeType
-      properties:
-        url:
-          type: string
-          description: Ссылка на документ или изображение
-        mimeType:
-          type: string
-          description: "MIME-тип (например: image/jpeg, application/pdf)"
-        sizeBytes:
-          type: integer
-          description: Размер в байтах, если доступен
-        extractedText:
-          type: string
-          description: Текст, извлечённый из файла (OCR / PDF text), если был извлечён
-        description:
-          type: string
-          description: Короткое текстовое описание (alt, caption или сгенерированное моделью)
-        descriptionSource:
-          $ref: "#/components/schemas/DocumentDescriptionSourceType"
-
     CrawlerError:
       type: object
       required:
@@ -340,7 +226,7 @@ components:
       type: string
       description: Код критической ошибки краулера
       enum:
-        - INVALID_DOMAIN 
+        - INVALID_DOMAIN
         - ROBOTS_FETCH_FAILED
         - SITEMAP_PARSE_FAILED
         - INTERNAL_ERROR
