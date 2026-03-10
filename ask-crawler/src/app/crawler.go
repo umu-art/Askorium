@@ -73,7 +73,7 @@ func (s *CrawlerService) HandleTask(ctx context.Context, msg []byte) error {
 			job.Enqueue(u, 0)
 		}
 	} else {
-		job.Enqueue("https://"+req.Domain, 0)
+		job.Enqueue(req.Domain, 0)
 	}
 
 	s.jobsMu.Lock()
