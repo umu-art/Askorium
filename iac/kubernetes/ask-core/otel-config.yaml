@@ -7,7 +7,8 @@ metadata:
     app: ask-core
 data:
   OTEL_SERVICE_NAME: "ask-core"
+  OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
   OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "http://obs.kazenin.ru:21890"
   OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://obs.kazenin.ru:21891"
   OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: "http://obs.kazenin.ru:21892"
-  OTEL_INSTRUMENTATION_METHODS_INCLUDE: "ru.*[*]"
+  OTEL_INSTRUMENTATION_METHODS_INCLUDE: "ru.*.*[*]"
