@@ -1,12 +1,16 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ChatPage } from '@/pages/ChatPage'
+import { SourcesPage } from '@/pages/SourcesPage'
 
-/**
- * Application root. Single-page app — no router needed at this stage.
- * If multi-page routing is added later (history page, settings, etc.),
- * React Router or TanStack Router would be inserted here.
- */
 function App() {
-  return <ChatPage />
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<ChatPage />} />
+        <Route path="/sources" element={<SourcesPage />} />
+      </Routes>
+    </BrowserRouter>
+  )
 }
 
 export default App

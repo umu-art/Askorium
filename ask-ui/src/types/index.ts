@@ -1,16 +1,10 @@
-export interface Source {
-  id: number
-  title: string
-  url: string
-  domain: string
-  snippet?: string
-}
+import type { SourceSnippet } from '@/lib/api'
 
 export interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
-  sources?: Source[]
+  sources?: SourceSnippet[]
   timestamp: Date
 }
 

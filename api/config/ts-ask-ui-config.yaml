@@ -1,0 +1,24 @@
+sources:
+  - search-api.yaml
+  - feedback-api.yaml
+  - source-api.yaml
+target: ts-ask-ui-api
+generatorName: typescript-fetch
+
+additionalProperties:
+  npmName: ask-ui-api
+  npmVersion: 1.0.0
+  supportsES6: true
+  typescriptThreePlus: true
+  withInterfaces: true
+  enumPropertyNaming: UPPERCASE
+
+globalProperties:
+  models: ''
+  apis: ''
+  supportingFiles: ''
+
+  modelTests: false
+  apiTests: false
+  modelDocs: false
+  apiDocs: false
