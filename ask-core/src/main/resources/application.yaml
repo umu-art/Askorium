@@ -4,9 +4,8 @@ askorium:
     encoder-url: ${ASK_ENCODER_URL:http://localhost:8000}
 
   scrapper:
-    scrapper-request-queue-name: askorium.crawler.input
-    scrapper-response-queue-name: askorium.crawler.output
-    redis-key-prefix: askorium.scrapping-tasks
+    scrapper-request-queue-name: askorium.render.input
+    scrapper-response-queue-name: askorium.parser.output
     wait-timeout: 10m
 
   index:

@@ -1,4 +1,4 @@
-package ru.askorium.core.ask_scrapper_api.config;
+package ru.askorium.core.source.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -14,8 +14,6 @@ public class ScrapperTasksProperties {
     private String scrapperRequestQueueName;
 
     private String scrapperResponseQueueName;
-
-    private String redisKeyPrefix;
 
     private Duration waitTimeout;
 

@@ -20,7 +20,7 @@ import { useChat } from '@/hooks/useChat'
  * view whenever messages or isLoading change. Using `behavior: 'smooth'` for UX polish.
  */
 export function ChatPage() {
-  const { messages, isLoading, inputValue, setInputValue, handleSubmit, resetChat } = useChat()
+  const { messages, isLoading, inputValue, setInputValue, handleSubmit, resetChat, sources, selectedSourceId, setSelectedSourceId } = useChat()
   const bottomRef = useRef<HTMLDivElement>(null)
   const hasMessages = messages.length > 0
 
@@ -36,6 +36,9 @@ export function ChatPage() {
         onChange={setInputValue}
         onSubmit={handleSubmit}
         isLoading={isLoading}
+        sources={sources}
+        selectedSourceId={selectedSourceId}
+        onSourceChange={setSelectedSourceId}
       />
     )
   }

@@ -23,6 +23,7 @@ public class IndexSyncService {
     public void syncIndexes(ArrayList<PageEntity> updatedPages) {
         log.debug("syncIndexes for {} updated pages", updatedPages.size());
 
+
         var textsFromPages = updatedPages.stream()
                 .flatMap(page -> {
                     var blocksTexts = page.getBlocks()
