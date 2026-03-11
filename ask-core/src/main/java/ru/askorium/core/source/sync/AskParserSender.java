@@ -30,7 +30,7 @@ public class AskParserSender {
     private final SyncDispatcher syncDispatcher;
     private final IndexSyncService indexSyncService;
 
-    @RabbitListener(queues = "#{scrapperResponseQueue.name}")
+    @RabbitListener(queues = "${askorium.scrapper.scrapper-response-queue-name}")
     public void handleScrappedPage(ScrapeResponse response) {
         var urlEntity = syncTaskUrlJpa.findById(response.getTaskId()).orElse(null);
         if (urlEntity == null) {
