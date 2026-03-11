@@ -4,7 +4,7 @@ askorium:
     encoder-url: ${ASK_ENCODER_URL:http://localhost:8000}
 
   scrapper:
-    scrapper-request-queue-name: askorium.renderer.input
+    scrapper-request-queue-name: askorium.render.input
     scrapper-response-queue-name: askorium.parser.output
     wait-timeout: 10m
 
