@@ -6,6 +6,9 @@ import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 @Configuration
 @EnableAsync
 public class AsyncConfiguration {
@@ -21,6 +24,13 @@ public class AsyncConfiguration {
         executor.setAwaitTerminationSeconds(30);
         executor.initialize();
         return executor;
+    }
+
+    @Bean
+    public ExecutorService indexingExecutor() {
+        return Executors.newSingleThreadExecutor(
+                Thread.ofVirtual().name("indexing-", 0).factory()
+        );
     }
 
 }

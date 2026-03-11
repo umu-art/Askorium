@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import type { Message } from '@/types'
+import type { SourceDto } from '@/lib/api'
 import { generateId } from '@/lib/utils'
 import { searchApi, sourceApi, SearchStatus } from '@/lib/api'
 
@@ -12,25 +13,28 @@ interface UseChatReturn {
   setInputValue: (value: string) => void
   handleSubmit: (content: string) => Promise<void>
   resetChat: () => void
+  sources: SourceDto[]
+  selectedSourceId: string | null
+  setSelectedSourceId: (id: string) => void
 }
 
 export function useChat(): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [inputValue, setInputValue] = useState('')
-  const sourceIdRef = useRef<string | null>(null)
+  const [sources, setSources] = useState<SourceDto[]>([])
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
 
   useEffect(() => {
-    sourceApi.listSources().then(sources => {
-      if (sources.length > 0 && sources[0].id) {
-        sourceIdRef.current = sources[0].id
+    sourceApi.listSources().then(list => {
+      setSources(list)
+      if (list.length > 0 && list[0].id) {
+        setSelectedSourceId(list[0].id)
       } else {
-        sourceIdRef.current = crypto.randomUUID()
-        console.warn('No sources found, using random sourceId:', sourceIdRef.current)
+        console.warn('No sources found')
       }
     }).catch(() => {
-      sourceIdRef.current = crypto.randomUUID()
-      console.warn('Failed to load sources, using random sourceId:', sourceIdRef.current)
+      console.warn('Failed to load sources')
     })
   }, [])
 
@@ -49,7 +53,7 @@ export function useChat(): UseChatReturn {
     setIsLoading(true)
 
     try {
-      const sourceId = sourceIdRef.current ?? crypto.randomUUID()
+      const sourceId = selectedSourceId ?? crypto.randomUUID()
 
       const { queryId } = await searchApi.createSearchQuery({
         searchCreateRequest: { query: content.trim(), sourceId },
@@ -76,7 +80,7 @@ export function useChat(): UseChatReturn {
     } finally {
       setIsLoading(false)
     }
-  }, [isLoading])
+  }, [isLoading, selectedSourceId])
 
   const resetChat = useCallback(() => {
     setMessages([])
@@ -91,6 +95,9 @@ export function useChat(): UseChatReturn {
     setInputValue,
     handleSubmit,
     resetChat,
+    sources,
+    selectedSourceId,
+    setSelectedSourceId,
   }
 }
 

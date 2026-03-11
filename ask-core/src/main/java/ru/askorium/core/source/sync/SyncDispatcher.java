@@ -2,11 +2,9 @@ package ru.askorium.core.source.sync;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.askorium.api.model.RenderInput;
 import ru.askorium.api.model.SourceSyncRequest;
 import ru.askorium.core.source.config.ScrapperTasksProperties;
 import ru.askorium.core.source.domain.SyncTaskEntity;
@@ -21,7 +19,6 @@ import ru.askorium.core.source.jpa.SyncTaskUrlJpa;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -40,7 +37,7 @@ public class SyncDispatcher {
     private final PageJpa pageJpa;
     private final SyncTaskJpa syncTaskJpa;
     private final SyncTaskUrlJpa syncTaskUrlJpa;
-    private final RabbitTemplate rabbitTemplate;
+    private final RenderRequestSender renderRequestSender;
     private final ScrapperTasksProperties scrapperTasksProperties;
 
     private final ConcurrentHashMap<UUID, CompletableFuture<Void>> pendingTasks = new ConcurrentHashMap<>();
@@ -54,7 +51,7 @@ public class SyncDispatcher {
         task.setSourceId(sourceId);
         task.setStatus(SyncTaskStatus.RUNNING);
         task.setForceSync(Boolean.TRUE.equals(request.getForce()));
-        task.setPagesDiscovered(1);
+        task.setPagesDiscovered(0);
         task.setStartedAt(OffsetDateTime.now());
 
         try {
@@ -64,17 +61,11 @@ public class SyncDispatcher {
             return;
         }
 
-        var urlEntity = new SyncTaskUrlEntity();
-        urlEntity.setTaskId(task.getId());
-        urlEntity.setUrl(source.getSourceUrl());
-        urlEntity.setStatus(SyncTaskUrlStatus.PENDING);
-        urlEntity = syncTaskUrlJpa.save(urlEntity);
-
         var future = new CompletableFuture<Void>();
         pendingTasks.put(task.getId(), future);
 
         log.info("Starting sync task {} for source {}", task.getId(), sourceId);
-        sendRenderRequest(urlEntity.getId(), source.getSourceUrl());
+        renderRequestSender.send(task.getId(), source.getSourceUrl());
 
         try {
             future.get(scrapperTasksProperties.getWaitTimeout().toMillis(), TimeUnit.MILLISECONDS);
@@ -89,13 +80,6 @@ public class SyncDispatcher {
         } finally {
             pendingTasks.remove(task.getId());
         }
-    }
-
-    void sendRenderRequest(UUID urlEntityId, String url) {
-        var request = new RenderInput()
-                .url(URI.create(url))
-                .taskId(urlEntityId);
-        rabbitTemplate.convertAndSend(scrapperTasksProperties.getScrapperRequestQueueName(), request);
     }
 
     @Transactional(transactionManager = "sourcesTransactionManager")

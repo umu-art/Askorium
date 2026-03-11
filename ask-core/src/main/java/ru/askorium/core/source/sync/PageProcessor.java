@@ -12,11 +12,7 @@ import ru.askorium.core.common.ObjectCompareUtils;
 import ru.askorium.core.common.UrlUtils;
 import ru.askorium.core.exception.BadUrlException;
 import ru.askorium.core.source.domain.PageEntity;
-import ru.askorium.core.source.domain.SyncTaskUrlEntity;
-import ru.askorium.core.source.domain.SyncTaskUrlStatus;
 import ru.askorium.core.source.jpa.PageJpa;
-import ru.askorium.core.source.jpa.SyncTaskJpa;
-import ru.askorium.core.source.jpa.SyncTaskUrlJpa;
 import ru.askorium.core.source.mapper.PageMapper;
 import ru.askorium.core.text_processing.TextProcessingService;
 
@@ -33,39 +29,20 @@ import java.util.function.Consumer;
 public class PageProcessor {
 
     private final PageJpa pageJpa;
-    private final SyncTaskJpa syncTaskJpa;
-    private final SyncTaskUrlJpa syncTaskUrlJpa;
     private final TextProcessingService textProcessingService;
     private final PageMapper pageMapper;
 
     @Transactional(transactionManager = "sourcesTransactionManager")
-    public ScrapeResult processScrapedUrl(UUID urlEntityId, UUID taskId, UUID sourceId, boolean forceSync, ScrappedPage page) {
-        var urlEntity = syncTaskUrlJpa.findById(urlEntityId).orElseThrow();
-        urlEntity.setStatus(SyncTaskUrlStatus.SCRAPED);
-        syncTaskUrlJpa.save(urlEntity);
-        syncTaskJpa.incrementPagesScraped(taskId);
-
-        PageEntity savedPage = null;
-        List<SyncTaskUrlEntity> newUrls = new ArrayList<>();
-
+    public ScrapeResult processPage(ScrappedPage page, UUID sourceId, boolean forceSync) {
         normalizePageTexts(page);
-        if (normalizePageUrl(page)) {
-            savedPage = savePageDelta(page, sourceId, forceSync);
-            newUrls = discoverNewUrls(page, taskId);
+
+        if (!normalizePageUrl(page)) {
+            return new ScrapeResult(null, List.of());
         }
 
-        var pendingCount = syncTaskUrlJpa.countByTaskIdAndStatus(taskId, SyncTaskUrlStatus.PENDING);
-        return new ScrapeResult(savedPage, newUrls, pendingCount == 0, taskId);
-    }
-
-    @Transactional(transactionManager = "sourcesTransactionManager")
-    public boolean markUrlFailed(UUID urlEntityId, UUID taskId) {
-        var urlEntity = syncTaskUrlJpa.findById(urlEntityId).orElseThrow();
-        urlEntity.setStatus(SyncTaskUrlStatus.FAILED);
-        syncTaskUrlJpa.save(urlEntity);
-        syncTaskJpa.incrementPagesFailed(taskId);
-
-        return syncTaskUrlJpa.countByTaskIdAndStatus(taskId, SyncTaskUrlStatus.PENDING) == 0;
+        var savedPage = savePageDelta(page, sourceId, forceSync);
+        var newUrls = discoverUrlsFromPage(page);
+        return new ScrapeResult(savedPage, newUrls);
     }
 
     private PageEntity savePageDelta(ScrappedPage scrappedPage, UUID sourceId, boolean force) {
@@ -83,26 +60,15 @@ public class PageProcessor {
         return pageJpa.save(page);
     }
 
-    private List<SyncTaskUrlEntity> discoverNewUrls(ScrappedPage page, UUID taskId) {
-        var newUrls = new ArrayList<SyncTaskUrlEntity>();
-        if (page.getLinks() == null) return newUrls;
+    private List<String> discoverUrlsFromPage(ScrappedPage page) {
+        if (page.getLinks() == null) return List.of();
 
+        var urls = new ArrayList<String>();
         for (var link : page.getLinks()) {
             if (link.getType() != LinkType.INTERNAL) continue;
-
-            var url = link.getHref();
-            if (syncTaskUrlJpa.existsByTaskIdAndUrl(taskId, url)) continue;
-
-            var urlEntity = new SyncTaskUrlEntity();
-            urlEntity.setTaskId(taskId);
-            urlEntity.setUrl(url);
-            urlEntity.setStatus(SyncTaskUrlStatus.PENDING);
-            urlEntity = syncTaskUrlJpa.save(urlEntity);
-            syncTaskJpa.incrementPagesDiscovered(taskId);
-            newUrls.add(urlEntity);
+            urls.add(link.getHref());
         }
-
-        return newUrls;
+        return urls;
     }
 
     private boolean normalizePageUrl(ScrappedPage page) {
@@ -207,5 +173,5 @@ public class PageProcessor {
         return (a, b) -> ObjectCompareUtils.equalsObjectsExcludeFields(a, b, "id", "created", "updated");
     }
 
-    public record ScrapeResult(PageEntity savedPage, List<SyncTaskUrlEntity> newUrls, boolean taskComplete, UUID taskId) {}
+    public record ScrapeResult(PageEntity savedPage, List<String> newUrls) {}
 }
