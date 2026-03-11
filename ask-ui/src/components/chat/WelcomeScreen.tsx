@@ -78,7 +78,7 @@ export function WelcomeScreen({ value, onChange, onSubmit, isLoading, sources, s
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Askorium</h1>
           <div className="flex items-center gap-1.5 mt-0.5">
             <p className="text-sm text-gray-500">Умный поиск по сайту</p>
-            {sozAQurceBadge}
+            {sourceBadge}
           </div>
         </div>
       </div>
