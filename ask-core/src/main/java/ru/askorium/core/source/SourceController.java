@@ -12,7 +12,7 @@ import ru.askorium.core.source.jpa.SourceJpa;
 import ru.askorium.core.common.UrlUtils;
 import ru.askorium.core.source.mapper.SourceMapper;
 import ru.askorium.core.source.sync.AutoSyncManager;
-import ru.askorium.core.source.sync.SourceSyncService;
+import ru.askorium.core.source.sync.SyncDispatcher;
 
 import java.util.List;
 import java.util.UUID;
@@ -23,7 +23,7 @@ import static java.util.Objects.nonNull;
 @RequiredArgsConstructor
 public class SourceController implements SourceApi {
 
-    private final SourceSyncService sourceSyncService;
+    private final SyncDispatcher syncDispatcher;
     private final AutoSyncManager autoSyncManager;
     private final SourceJpa sourceJpa;
     private final SourceMapper sourceMapper;
@@ -73,7 +73,7 @@ public class SourceController implements SourceApi {
 
     @Override
     public ResponseEntity<Void> syncSource(SourceSyncRequest sourceSyncRequest) {
-        sourceSyncService.sync(sourceSyncRequest);
+        syncDispatcher.sync(sourceSyncRequest);
         return ResponseEntity.ok().build();
     }
 }

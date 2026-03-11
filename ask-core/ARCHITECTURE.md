@@ -47,7 +47,7 @@ The `source` module manages content sources and the full scraping → indexing p
 
 ### Sync pipeline (`SourceSyncService`)
 1. Acquire distributed lock via Redisson (`source-sync:<sourceId>`, 5s wait, 30min lease)
-2. Call `AskScrapperService.scrapSource(url)` → `List<ScrappedPage>`
+2. Call `AskParserSender.scrapSource(url)` → `List<ScrappedPage>`
 3. Normalize all texts via `TextProcessingService.normalizeText()` (blocks, link anchors, document extracted text)
 4. Diff against existing pages by URL:
    - Skip unchanged pages (by `contentHash`) unless force=true
@@ -172,7 +172,7 @@ All entities extend `BaseEntity` (UUID id, created, updated timestamps).
 
 ### RabbitMQ
 - Configured: `RabbitConverterConfiguration` (JSON message converter), `RabbitRetryBackOffConfiguration` (retry policy)
-- Not yet wired to scrapper service (AskScrapperService is interface only)
+- Not yet wired to scrapper service (AskParserSender is interface only)
 
 ## Cross-Cutting Concerns
 

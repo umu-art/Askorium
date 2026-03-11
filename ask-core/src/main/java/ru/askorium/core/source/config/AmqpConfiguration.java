@@ -1,4 +1,4 @@
-package ru.askorium.core.ask_scrapper_api.config;
+package ru.askorium.core.source.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.core.Queue;
