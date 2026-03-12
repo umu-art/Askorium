@@ -15,7 +15,7 @@ info:
     События публикуются по мере обхода. Тип определяется по полю `type`.
 
     Гарантированный порядок для одной задачи:
-    `page.scraped* → task.completed | task.failed`
+    `task.completed | task.failed`
 
 paths:
   /crawler-stub:
@@ -150,13 +150,6 @@ components:
         timestamp:
           type: string
           format: date-time
-        url: # page.scraped
-          type: string
-          format: uri
-          description: URL обработанной страницы
-        depth: # page.scraped
-          type: integer
-          description: Глубина страницы от seed_urls
         pages: # task.completed — все страницы задачи
           type: array
           description: Все успешно обработанные страницы задачи
@@ -234,7 +227,6 @@ components:
     CrawlEventType:
       type: string
       enum:
-        - page.scraped
         - task.completed
         - task.failed
 
