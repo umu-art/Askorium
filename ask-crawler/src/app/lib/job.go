@@ -15,11 +15,12 @@ type URLEntry struct {
 
 // JobState хранит состояние одной задачи краулинга в памяти.
 type JobState struct {
-	TaskID   string
-	Domain   string
-	MaxDepth int32
-	MaxPages int32
-	Metadata map[string]interface{}
+	TaskID      string
+	Domain      string
+	MaxDepth    int32
+	MaxPages    int32
+	Concurrency int32
+	Metadata    map[string]interface{}
 
 	StartedAt time.Time
 
@@ -29,17 +30,20 @@ type JobState struct {
 	pages        []crawler_model.ScrappedPage
 	pagesScraped int32
 	pagesFailed  int32
+	inFlightAt   map[string]time.Time // key: оригинальный URL, отправленный в renderer
 }
 
-func NewJobState(taskID, domain string, maxDepth, maxPages int32, metadata map[string]interface{}) *JobState {
+func NewJobState(taskID, domain string, maxDepth, maxPages, concurrency int32, metadata map[string]interface{}) *JobState {
 	return &JobState{
-		TaskID:    taskID,
-		Domain:    domain,
-		MaxDepth:  maxDepth,
-		MaxPages:  maxPages,
-		Metadata:  metadata,
-		StartedAt: time.Now(),
-		visited:   make(map[string]bool),
+		TaskID:      taskID,
+		Domain:      domain,
+		MaxDepth:    maxDepth,
+		MaxPages:    maxPages,
+		Concurrency: concurrency,
+		Metadata:    metadata,
+		StartedAt:   time.Now(),
+		visited:     make(map[string]bool),
+		inFlightAt:  make(map[string]time.Time),
 	}
 }
 
@@ -99,6 +103,49 @@ func (j *JobState) Pages() []crawler_model.ScrappedPage {
 	result := make([]crawler_model.ScrappedPage, len(j.pages))
 	copy(result, j.pages)
 	return result
+}
+
+func (j *JobState) IncrInFlight(url string) {
+	j.mu.Lock()
+	j.inFlightAt[url] = time.Now()
+	j.mu.Unlock()
+}
+
+func (j *JobState) DecrInFlight(url string) {
+	j.mu.Lock()
+	delete(j.inFlightAt, url)
+	j.mu.Unlock()
+}
+
+func (j *JobState) InFlightCount() int32 {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	return int32(len(j.inFlightAt))
+}
+
+// IsDone возвращает true когда frontier пуст и нет страниц в обработке.
+func (j *JobState) IsDone() bool {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	return len(j.frontier) == 0 && len(j.inFlightAt) == 0
+}
+
+// ExpireInFlight удаляет из in-flight записи, превысившие timeout,
+// инкрементирует pagesFailed и возвращает список просроченных URL.
+func (j *JobState) ExpireInFlight(timeout time.Duration) []string {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+
+	var expired []string
+	now := time.Now()
+	for url, sentAt := range j.inFlightAt {
+		if now.Sub(sentAt) > timeout {
+			expired = append(expired, url)
+			delete(j.inFlightAt, url)
+			j.pagesFailed++
+		}
+	}
+	return expired
 }
 
 // Stats возвращает текущую статистику: scraped, failed, frontier size.

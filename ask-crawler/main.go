@@ -54,6 +54,8 @@ func main() {
 		DLQQueue:    "askorium.parser.output.dlq",
 	}, crawlerService.HandleScrapeResult)
 
+	go crawlerService.WatchTTL(ctx)
+
 	logger.Info("crawler started")
 	if err := broker.Start(ctx); err != nil {
 		logger.Error("broker error", "error", err)
