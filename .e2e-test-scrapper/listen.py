@@ -1,3 +1,5 @@
+import time
+
 import pika, json, os
 from datetime import datetime
 
@@ -15,7 +17,10 @@ def url_to_filename(url: str) -> str:
 def on_msg(ch, method, props, body):
     resp = json.loads(body)
     page_url = (resp.get("page") or {}).get("url") or resp.get("task_id", "unknown")
-    filename = f"{url_to_filename(page_url)}.json"
+    ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
+    os.makedirs(out_dir, exist_ok=True)
+    filename = os.path.join(out_dir, f"{ts}_{url_to_filename(page_url)}.json")
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(resp, f, indent=2, ensure_ascii=False)
     print(f"Saved: {filename}")
