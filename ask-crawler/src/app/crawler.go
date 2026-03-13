@@ -274,15 +274,15 @@ func (s *CrawlerService) removeJob(taskID string) {
 	s.jobsMu.Unlock()
 }
 
-func (s *CrawlerService) publishEvent(ctx context.Context, event crawler_model.CrawlEvent, routingKey string) error {
+func (s *CrawlerService) publishEvent(ctx context.Context, event crawler_model.CrawlEvent, eventType string) error {
 	body, err := json.Marshal(event)
 	if err != nil {
-		return fmt.Errorf("crawler: marshal event %q: %w", routingKey, err)
+		return fmt.Errorf("crawler: marshal event %q: %w", eventType, err)
 	}
-	if err := s.eventPublisher.PublishWithKey(ctx, routingKey, body); err != nil {
-		return fmt.Errorf("crawler: publish event %q: %w", routingKey, err)
+	if err := s.eventPublisher.Publish(ctx, body); err != nil {
+		return fmt.Errorf("crawler: publish event %q: %w", eventType, err)
 	}
-	s.logger.Info("crawler: published event", "routing_key", routingKey)
+	s.logger.Info("crawler: published event", "event_type", eventType)
 	return nil
 }
 
