@@ -7,12 +7,12 @@ import (
 
 // DOMPruner removes noise nodes from a cloned document in-place.
 type DOMPruner interface {
-	Prune(doc *goquery.Document)
+	Prune(doc *goquery.Selection)
 }
 
 // BlockSegmenter traverses the pruned DOM and produces a flat list of RawBlocks.
 type BlockSegmenter interface {
-	Segment(doc *goquery.Document, pageURL string) []RawBlock
+	Segment(doc *goquery.Selection, pageURL string) []RawBlock
 }
 
 // BlockFilter is a single predicate applied to each block independently.
@@ -50,5 +50,5 @@ type TextNormalizer interface {
 
 // TextPipeline is the complete internal pipeline used by TextExtractor.
 type TextPipeline interface {
-	Run(doc *goquery.Document, pageURL string) []scrappermodel.ContentBlock
+	Run(doc *goquery.Selection, pageURL string) []scrappermodel.ContentBlock
 }

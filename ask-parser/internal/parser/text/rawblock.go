@@ -6,6 +6,7 @@ import scrappermodel "github.com/omo-ri/askorium/go-parser-api"
 // It carries all signals needed by BlockCleaner and BlockSelector.
 // It does not leave the text/ package — TextExtractor converts it to scrappermodel.ContentBlock.
 type RawBlock struct {
+	Idx          int    // sequential index within the page, internal only
 	HTMLId       string
 	TagName      string
 	Text         string  // raw text before normalisation

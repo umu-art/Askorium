@@ -29,7 +29,7 @@ type Metadata struct {
 }
 
 // ExtractionContext is the immutable input shared across all Extractors.
-// FullDoc must not be mutated — clone before pruning.
+// FullDoc must not be mutated — clone it before pruning (FullDoc.Clone()).
 type ExtractionContext struct {
 	FullDoc  *goquery.Document
 	PageURL  string
