@@ -1,0 +1,3 @@
+aio-pika
+trafilatura
+lxml

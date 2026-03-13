@@ -1,0 +1,24 @@
+sources:
+  - parser-api.yaml
+target: python-parser-api
+generatorName: python-fastapi
+
+additionalProperties:
+  packageName: python_parser_api
+  fastapiImplementationPackage: python_parser_api
+
+globalProperties:
+  supportingFiles:
+    - setup.cfg
+    - pyproject.toml
+    - requirements.txt
+    - __init__.py
+    - extra_models.py
+
+  models: ''
+  apis: ''
+
+  modelTests: false
+  apiTests: false
+  modelDocs: false
+  apiDocs: false

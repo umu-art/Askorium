@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ask-trafilatura
+  namespace: askorium
+  labels:
+    app: ask-trafilatura
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: ask-trafilatura
+  template:
+    metadata:
+      labels:
+        app: ask-trafilatura
+    spec:
+      containers:
+        - name: ask-trafilatura
+          image: ghcr.io/umu-art/ask-trafilatura:main
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+
+          envFrom:
+            - secretRef:
+                name: ask-trafilatura
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "500M"
+            limits:
+              memory: "1G"
+
+          securityContext:
+            allowPrivilegeEscalation: false
+
+      imagePullSecrets:
+        - name: github-container-registry
+
+      restartPolicy: Always
