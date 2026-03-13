@@ -6,7 +6,7 @@ metadata:
   labels:
     app: ask-renderer
 spec:
-  replicas: 1
+  replicas: 3
   revisionHistoryLimit: 2
   selector:
     matchLabels:

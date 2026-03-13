@@ -19,12 +19,12 @@ import (
 const (
 	defaultMaxDepth    int32 = 5
 	defaultMaxPages    int32 = 1000
-	defaultConcurrency int32 = 5
+	defaultConcurrency int32 = 50
 
 	// inFlightTTL — максимальное время ожидания результата от parser'а.
 	// Если за это время ответ не пришёл (например, сообщение ушло в DLQ),
 	// URL считается failed и pipeline продолжается.
-	inFlightTTL = 2 * time.Minute
+	inFlightTTL = 5 * time.Minute
 )
 
 type CrawlerService struct {
