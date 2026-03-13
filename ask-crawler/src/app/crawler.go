@@ -19,7 +19,7 @@ import (
 const (
 	defaultMaxDepth    int32 = 5
 	defaultMaxPages    int32 = 1000
-	defaultConcurrency int32 = 50
+	defaultConcurrency int32 = 3
 
 	// inFlightTTL — максимальное время ожидания результата от parser'а.
 	// Если за это время ответ не пришёл (например, сообщение ушло в DLQ),
