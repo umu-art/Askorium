@@ -1,7 +1,8 @@
 import pika, json, uuid
 
 URLS = [
-    "https://en.wikipedia.org/wiki/Web_scraping",
+    # "https://en.wikipedia.org/wiki/Web_scraping",
+    "https://lenta.ru/",
 ]
 
 conn = pika.BlockingConnection(pika.URLParameters("amqp://guest:guest@localhost:5672/"))
