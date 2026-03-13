@@ -28,13 +28,21 @@ spec:
             - secretRef:
                 name: ask-trafilatura
 
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            failureThreshold: 3
+#          livenessProbe:
+#            httpGet:
+#              path: /
+#              port: 8080
+#            initialDelaySeconds: 10
+#            periodSeconds: 15
+#            failureThreshold: 3
+#
+#          readinessProbe:
+#            httpGet:
+#              path: /
+#              port: 8080
+#            initialDelaySeconds: 10
+#            periodSeconds: 10
+#            failureThreshold: 3
 
           resources:
             requests:
