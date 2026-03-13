@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { Message } from '@/types'
-import type { SourceDto } from '@/lib/api'
+import {SearchMode, SourceDto} from '@/lib/api'
 import { generateId } from '@/lib/utils'
 import { searchApi, sourceApi, SearchStatus } from '@/lib/api'
 
@@ -56,7 +56,7 @@ export function useChat(): UseChatReturn {
       const sourceId = selectedSourceId ?? crypto.randomUUID()
 
       const { queryId } = await searchApi.createSearchQuery({
-        searchCreateRequest: { query: content.trim(), sourceId },
+        searchCreateRequest: { query: content.trim(), mode: SearchMode.DEEP, sourceId },
       })
 
       const result = await pollSearchResult(queryId)
