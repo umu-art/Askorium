@@ -153,7 +153,10 @@ func (s *CrawlerService) fillPipeline(ctx context.Context, job *applib.JobState)
 		}
 	}
 
-	if job.IsDone() {
+	done := job.IsDone()
+	limitedAndDrained := job.LimitReached() && job.InFlightCount() == 0
+
+	if done || limitedAndDrained {
 		reason := crawler_model.COMPLETIONREASON_FRONTIER_EMPTY
 		if job.LimitReached() {
 			reason = crawler_model.COMPLETIONREASON_MAX_PAGES_REACHED
