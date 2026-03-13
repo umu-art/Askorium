@@ -36,7 +36,7 @@ func NewParser() Parser {
 		segment.NewDOMBlockSegmenter(),
 		filter.NewChainBlockCleaner(
 			filter.NewMinCharLengthFilter(filter.DefaultMinCharLength),
-			// TODO (aidweserd) add [1]: filter.NewMaxLinkDensityFilter   — убирает навигацию/See also (link density=1.0); порог 0.5
+			filter.NewMaxLinkDensityFilter(filter.DefaultMaxLinkDensity),
 			// TODO (omo-ri) add [3]: filter.NewMinWordCountFilter      — страховка от однословного мусора; порог 3
 			// TODO (aidweserd) add [7]: filter.NewBoilerplateContextFilter — контекстный фильтр (блоки после References/See also)
 		),

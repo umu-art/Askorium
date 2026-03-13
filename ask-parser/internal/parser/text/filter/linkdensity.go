@@ -4,8 +4,18 @@ import "ask-parser/internal/parser/text"
 
 var _ text.BlockFilter = (*MaxLinkDensityFilter)(nil)
 
-// MaxLinkDensityFilter is a no-op stub for V1 (always passes).
-// V2: block.LinkDensity <= threshold.
-type MaxLinkDensityFilter struct{}
+const DefaultMaxLinkDensity = 0.5
 
-func (f *MaxLinkDensityFilter) Keep(_ text.RawBlock) bool { return true }
+// MaxLinkDensityFilter drops blocks where link density exceeds the threshold.
+// Removes navigation lists, "See also" sections, and similar link-heavy noise.
+type MaxLinkDensityFilter struct {
+	threshold float64
+}
+
+func NewMaxLinkDensityFilter(threshold float64) *MaxLinkDensityFilter {
+	return &MaxLinkDensityFilter{threshold: threshold}
+}
+
+func (f *MaxLinkDensityFilter) Keep(block text.RawBlock) bool {
+	return block.LinkDensity <= f.threshold
+}

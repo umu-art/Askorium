@@ -46,7 +46,7 @@ AMQP_URL=amqp://guest:guest@localhost:5672/ python -m app.main
 
 ```bash
 cd ask-parser/src
-AMQP_URL=amqp://guest:guest@localhost:5672/ go run ./cmd/main.go
+AMQP_URL=amqp://guest:guest@localhost:5672/ go run main.go
 ```
 
 ### 4. Слушаем результат (отдельный терминал)
