@@ -20,3 +20,7 @@ spec:
       targetRevision: HEAD
       ref: askorium
   project: askorium
+  syncPolicy:
+    automated:
+      prune: true
+      enabled: true
