@@ -32,6 +32,10 @@ jobs:
           - module: ask-crawler
             script: go
 
+          - module: ask-trafilatura
+            script: python
+
+
     uses: ./.github/workflows/_build-module.yml
     with:
       module: ${{ matrix.module }}

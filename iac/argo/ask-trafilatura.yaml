@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ask-trafilatura
+  namespace: argocd
+  labels:
+    app.kubernetes.io/instance: askorium
+spec:
+  destination:
+    namespace: askorium
+    server: https://kubernetes.default.svc
+  source:
+    path: iac/kubernetes/ask-trafilatura
+    repoURL: https://github.com/umu-art/askorium
+    targetRevision: HEAD
+    directory:
+      recurse: true
+  project: askorium
