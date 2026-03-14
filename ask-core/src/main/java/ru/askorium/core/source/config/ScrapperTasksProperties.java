@@ -14,7 +14,5 @@ public class ScrapperTasksProperties {
     private String scrapperRequestQueueName;
 
     private String scrapperResponseQueueName;
-
-    private Duration waitTimeout;
-
+    
 }
