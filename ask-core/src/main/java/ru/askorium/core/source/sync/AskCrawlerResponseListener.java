@@ -12,6 +12,7 @@ import ru.askorium.core.source.jpa.SyncTaskJpa;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -53,8 +54,10 @@ public class AskCrawlerResponseListener {
         }
 
         var stats = event.getStats();
-        task.setPagesScraped(stats.getPagesScraped());
-        task.setPagesFailed(stats.getPagesFailed());
+        if (nonNull(stats)) {
+            task.setPagesScraped(Objects.requireNonNullElse(stats.getPagesScraped(), 0));
+            task.setPagesFailed(Objects.requireNonNullElse(stats.getPagesFailed(), 0));
+        }
 
         syncDispatcher.markCompleted(taskId);
     }

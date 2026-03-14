@@ -6,8 +6,6 @@ import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import ru.askorium.api.model.CrawlTaskRequest;
 import ru.askorium.api.model.SourceSyncRequest;
 import ru.askorium.core.exception.EntityNotFoundException;
@@ -86,5 +84,10 @@ public class SyncDispatcher {
         task.setStatus(SyncTaskStatus.COMPLETED);
         task.setFinishedAt(OffsetDateTime.now());
         syncTaskJpa.save(task);
+
+        var source = sourceJpa.findById(task.getSourceId())
+                .orElseThrow(() -> new EntityNotFoundException("Source", task.getSourceId()));
+        source.getSyncPolicy().setLastSyncedAt(OffsetDateTime.now());
+        sourceJpa.save(source);
     }
 }
