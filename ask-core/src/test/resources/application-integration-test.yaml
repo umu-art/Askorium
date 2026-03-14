@@ -1,0 +1,14 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
+
+  ai:
+    openai:
+      api-key: dummy-key-for-tests
+      base-url: http://localhost:9999/dummy
+
+  temporal:
+    test-server:
+      enabled: true

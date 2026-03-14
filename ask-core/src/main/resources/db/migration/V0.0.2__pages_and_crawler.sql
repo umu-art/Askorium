@@ -6,7 +6,6 @@ create table if not exists sync_tasks
     source_id        uuid                                                   not null,
     status           varchar(20)                                            not null,
     force_sync       boolean                     default false              not null,
-    pages_discovered integer                     default 0                  not null,
     pages_scraped    integer                     default 0                  not null,
     pages_failed     integer                     default 0                  not null,
     error_message    text,

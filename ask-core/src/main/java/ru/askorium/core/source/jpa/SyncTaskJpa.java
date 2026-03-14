@@ -12,19 +12,4 @@ import java.util.UUID;
 
 @Repository
 public interface SyncTaskJpa extends JpaRepository<SyncTaskEntity, UUID> {
-
-    @Transactional
-    @Modifying(clearAutomatically = true)
-    @Query("UPDATE SyncTaskEntity t SET t.pagesDiscovered = t.pagesDiscovered + 1 WHERE t.id = :taskId")
-    void incrementPagesDiscovered(@Param("taskId") UUID taskId);
-
-    @Transactional
-    @Modifying(clearAutomatically = true)
-    @Query("UPDATE SyncTaskEntity t SET t.pagesScraped = t.pagesScraped + 1 WHERE t.id = :taskId")
-    void incrementPagesScraped(@Param("taskId") UUID taskId);
-
-    @Transactional
-    @Modifying(clearAutomatically = true)
-    @Query("UPDATE SyncTaskEntity t SET t.pagesFailed = t.pagesFailed + 1 WHERE t.id = :taskId")
-    void incrementPagesFailed(@Param("taskId") UUID taskId);
 }
