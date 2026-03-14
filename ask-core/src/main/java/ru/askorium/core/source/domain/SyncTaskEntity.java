@@ -30,9 +30,6 @@ public class SyncTaskEntity extends BaseEntity {
     @Column(name = "force_sync", nullable = false)
     private boolean forceSync;
 
-    @Column(name = "pages_discovered", nullable = false)
-    private int pagesDiscovered;
-
     @Column(name = "pages_scraped", nullable = false)
     private int pagesScraped;
 

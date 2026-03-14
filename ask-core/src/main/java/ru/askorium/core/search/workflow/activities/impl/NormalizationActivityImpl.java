@@ -12,7 +12,7 @@ import ru.askorium.core.text_processing.TextProcessingService;
 import java.util.UUID;
 
 @Component
-@ActivityImpl
+@ActivityImpl(taskQueues = "askorium-search")
 @RequiredArgsConstructor
 public class NormalizationActivityImpl extends AbstractQueryActivity implements NormalizationActivity {
 

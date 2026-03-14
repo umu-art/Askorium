@@ -22,6 +22,7 @@ import ru.askorium.core.search.jpa.QueryJpa;
 import ru.askorium.core.search.mapper.SearchMapper;
 import ru.askorium.core.search.workflow.SearchWorkflow;
 
+import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +49,9 @@ public class SearchController implements SearchApi {
         }
 
         try {
-            var hasActiveQuery = queryJpa.existsByUserIdAndStatus(getUserId(), SearchStatus.RUNNING);
+            var staleThreshold = OffsetDateTime.now().minusMinutes(1);
+            var hasActiveQuery = queryJpa.existsByUserIdAndStatusAndCreatedAfter(
+                    getUserId(), SearchStatus.RUNNING, staleThreshold);
             if (hasActiveQuery) {
                 throw new LockedException();
             }

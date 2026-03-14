@@ -44,11 +44,9 @@ spring:
   temporal:
     connection:
       target: ${TEMPORAL_URL:localhost:7233}
-    workers:
-      - task-queue: askorium-search
-        name: ${spring.application.name}
-        virtual-threads:
-          using-virtual-threads: true
+    workers-auto-discovery:
+      packages:
+        - ru.askorium.core.search.workflow
 
   threads:
     virtual:
@@ -101,7 +99,7 @@ spring:
       add-mappings: false
 
 opensearch:
-  uris: ${ELASTICSEARCH_URL:http://localhost:9200}
+  uris: ${ELASTICSEARCH_URL:https://admin:wsbNU_%23d93nf@localhost:9200}
 
 server:
   servlet:

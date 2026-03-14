@@ -1,5 +1,7 @@
 package ru.askorium.core.source.sync;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,43 +34,31 @@ public class PageProcessor {
     private final TextProcessingService textProcessingService;
     private final PageMapper pageMapper;
 
+    @PersistenceContext(unitName = "sources")
+    private EntityManager entityManager;
+
     @Transactional(transactionManager = "sourcesTransactionManager")
-    public ScrapeResult processPage(ScrappedPage page, UUID sourceId, boolean forceSync) {
+    public PageEntity processPage(ScrappedPage page, UUID sourceId, boolean forceSync) {
         normalizePageTexts(page);
 
         if (!normalizePageUrl(page)) {
-            return new ScrapeResult(null, List.of());
-        }
-
-        var savedPage = savePageDelta(page, sourceId, forceSync);
-        var newUrls = discoverUrlsFromPage(page);
-        return new ScrapeResult(savedPage, newUrls);
-    }
-
-    private PageEntity savePageDelta(ScrappedPage scrappedPage, UUID sourceId, boolean force) {
-        var url = scrappedPage.getUrl();
-        var contentHash = String.valueOf(scrappedPage.hashCode());
-
-        var existing = pageJpa.findByUrl(url).orElse(null);
-        if (existing != null && contentHash.equals(existing.getContentHash()) && !force) {
-            log.debug("Page unchanged, skipping: {}", url);
             return null;
         }
 
-        var page = Objects.requireNonNullElse(existing, new PageEntity());
-        syncPage(page, scrappedPage, sourceId, contentHash);
-        return pageJpa.save(page);
+        return savePageDelta(page, sourceId, forceSync);
     }
 
-    private List<String> discoverUrlsFromPage(ScrappedPage page) {
-        if (page.getLinks() == null) return List.of();
+    private void normalizePageTexts(ScrappedPage page) {
+        page.getBlocks().forEach(block ->
+                block.setText(textProcessingService.normalizeText(block.getText())));
 
-        var urls = new ArrayList<String>();
-        for (var link : page.getLinks()) {
-            if (link.getType() != LinkType.INTERNAL) continue;
-            urls.add(link.getHref());
-        }
-        return urls;
+        var links = Objects.requireNonNullElse(page.getLinks(), new ArrayList<Link>());
+        links.forEach(link ->
+                link.setAnchorText(textProcessingService.normalizeText(link.getAnchorText())));
+
+        var documents = Objects.requireNonNullElse(page.getDocuments(), new ArrayList<Document>());
+        documents.forEach(doc ->
+                doc.setExtractedText(textProcessingService.normalizeText(doc.getExtractedText())));
     }
 
     private boolean normalizePageUrl(ScrappedPage page) {
@@ -104,17 +94,19 @@ public class PageProcessor {
         return true;
     }
 
-    private void normalizePageTexts(ScrappedPage page) {
-        page.getBlocks().forEach(block ->
-                block.setText(textProcessingService.normalizeText(block.getText())));
+    private PageEntity savePageDelta(ScrappedPage scrappedPage, UUID sourceId, boolean force) {
+        var url = scrappedPage.getUrl();
+        var contentHash = String.valueOf(scrappedPage.hashCode());
 
-        var links = Objects.requireNonNullElse(page.getLinks(), new ArrayList<Link>());
-        links.forEach(link ->
-                link.setAnchorText(textProcessingService.normalizeText(link.getAnchorText())));
+        var existing = pageJpa.findByUrl(url).orElse(null);
+        if (existing != null && contentHash.equals(existing.getContentHash()) && !force) {
+            log.debug("Page unchanged, skipping: {}", url);
+            return null;
+        }
 
-        var documents = Objects.requireNonNullElse(page.getDocuments(), new ArrayList<Document>());
-        documents.forEach(doc ->
-                doc.setExtractedText(textProcessingService.normalizeText(doc.getExtractedText())));
+        var page = Objects.requireNonNullElse(existing, new PageEntity());
+        syncPage(page, scrappedPage, sourceId, contentHash);
+        return pageJpa.save(page);
     }
 
     private void syncPage(PageEntity page, ScrappedPage scrappedPage, UUID sourceId, String contentHash) {
@@ -163,6 +155,10 @@ public class PageProcessor {
 
         existing.removeAll(toRemove);
 
+        if (!toRemove.isEmpty() && !remainingCandidates.isEmpty()) {
+            entityManager.flush();
+        }
+
         for (T candidate : remainingCandidates) {
             setPage.accept(candidate);
             existing.add(candidate);
@@ -170,7 +166,7 @@ public class PageProcessor {
     }
 
     private <T> BiPredicate<T, T> contentEquals() {
-        return (a, b) -> ObjectCompareUtils.equalsObjectsExcludeFields(a, b, "id", "created", "updated");
+        return (a, b) -> ObjectCompareUtils.equalsObjectsExcludeFields(a, b, "id", "created", "updated", "page");
     }
 
     public record ScrapeResult(PageEntity savedPage, List<String> newUrls) {}

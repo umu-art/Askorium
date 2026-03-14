@@ -17,12 +17,13 @@ import ru.askorium.core.search.jpa.PageBlockJpa;
 import ru.askorium.core.search.jpa.PageDocumentJpa;
 import ru.askorium.core.search.workflow.activities.RetrievalActivity;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
-@ActivityImpl
+@ActivityImpl(taskQueues = "askorium-search")
 @RequiredArgsConstructor
 public class RetrievalActivityImpl extends AbstractQueryActivity implements RetrievalActivity {
 
@@ -57,7 +58,7 @@ public class RetrievalActivityImpl extends AbstractQueryActivity implements Retr
         fillScores(sources, bm25Results, knnResults, params.getRrfK());
 
         sources.forEach(s -> s.setQuery(query));
-        query.setSources(sources);
+        query.getSources().addAll(sources);
     }
 
     private List<QuerySourceEntity> mapToSources(List<IndexText> bm25Results, List<IndexVector> knnResults) {
@@ -102,7 +103,7 @@ public class RetrievalActivityImpl extends AbstractQueryActivity implements Retr
                     entity.setTitle(doc.getDescription());
                     return entity;
                 })
-        ).toList();
+        ).collect(Collectors.toCollection(ArrayList::new));
     }
 
     private void fillScores(List<QuerySourceEntity> sources, List<IndexText> bm25Results, List<IndexVector> knnResults, int rrfK) {

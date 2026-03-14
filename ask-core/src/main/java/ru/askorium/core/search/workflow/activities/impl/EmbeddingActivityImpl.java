@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Component
-@ActivityImpl
+@ActivityImpl(taskQueues = "askorium-search")
 @RequiredArgsConstructor
 public class EmbeddingActivityImpl extends AbstractQueryActivity implements EmbeddingActivity {
 

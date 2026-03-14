@@ -2,10 +2,11 @@ package ru.askorium.core.search.workflow;
 
 import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
+import io.temporal.failure.ApplicationFailure;
 import io.temporal.spring.boot.WorkflowImpl;
 import io.temporal.workflow.Workflow;
-import org.springframework.stereotype.Component;
 import ru.askorium.core.search.workflow.activities.AnswerActivity;
+import ru.askorium.core.search.workflow.activities.CompletionActivity;
 import ru.askorium.core.search.workflow.activities.EmbeddingActivity;
 import ru.askorium.core.search.workflow.activities.NormalizationActivity;
 import ru.askorium.core.search.workflow.activities.RerankActivity;
@@ -40,12 +41,27 @@ public class SearchWorkflowImpl implements SearchWorkflow {
     private final AnswerActivity answerActivity =
             Workflow.newActivityStub(AnswerActivity.class, DEFAULT_OPTIONS);
 
+    private final CompletionActivity completionActivity =
+            Workflow.newActivityStub(CompletionActivity.class, DEFAULT_OPTIONS);
+
     @Override
     public void search(UUID queryId) {
-        normalizationActivity.normalize(queryId);
-        embeddingActivity.generateEmbedding(queryId);
-        retrievalActivity.retrieve(queryId);
-        rerankActivity.rerank(queryId);
-        answerActivity.generateAnswer(queryId);
+        try {
+            normalizationActivity.normalize(queryId);
+            embeddingActivity.generateEmbedding(queryId);
+            retrievalActivity.retrieve(queryId);
+            rerankActivity.rerank(queryId);
+            answerActivity.generateAnswer(queryId);
+            completionActivity.markDone(queryId);
+        } catch (Exception e) {
+            var text = "Unknown error";
+
+            if (e.getCause() instanceof ApplicationFailure failure) {
+                text = failure.getOriginalMessage();
+            }
+
+            completionActivity.markFailed(queryId, text);
+            throw e;
+        }
     }
 }

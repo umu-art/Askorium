@@ -64,9 +64,7 @@ create table if not exists page_blocks
     heading_level integer,
     text          text                                                   not null,
     constraint pk_blocks primary key (id),
-    constraint fk_blocks_on_page_id foreign key (page_id) references pages on delete cascade,
-    constraint uk_blocks_page_id_html_id unique (page_id, html_id),
-    constraint uk_blocks_page_id_text unique (page_id, text)
+    constraint fk_blocks_on_page_id foreign key (page_id) references pages on delete cascade
 );
 
 create table if not exists page_links

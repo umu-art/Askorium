@@ -37,12 +37,12 @@ services:
       - "5672:5672"
       - "15672:15672"
 
-  elasticsearch:
-    image: elastic/elasticsearch:8.19.11
+  opensearch:
+    image: opensearchproject/opensearch:3
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=wsbNU_#d93nf
     ports:
       - "9200:9200"
 

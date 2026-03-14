@@ -19,7 +19,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
-@ActivityImpl
+@ActivityImpl(taskQueues = "askorium-search")
 @RequiredArgsConstructor
 public class RerankActivityImpl extends AbstractQueryActivity implements RerankActivity {
 
@@ -39,7 +39,7 @@ public class RerankActivityImpl extends AbstractQueryActivity implements RerankA
         }
 
         if (CollectionUtils.isEmpty(query.getSources())) {
-            throw new IllegalStateException("Sources are not retrieved");
+            throw new IllegalStateException("Sources are not retrieved or empty");
         }
 
         var params = searchProperties.forMode(query.getMode());

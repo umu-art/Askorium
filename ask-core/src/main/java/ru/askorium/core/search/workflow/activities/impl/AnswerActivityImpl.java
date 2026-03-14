@@ -17,7 +17,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
-@ActivityImpl
+@ActivityImpl(taskQueues = "askorium-search")
 @RequiredArgsConstructor
 public class AnswerActivityImpl extends AbstractQueryActivity implements AnswerActivity {
 
