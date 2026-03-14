@@ -27,11 +27,15 @@ public class RestTemplateFactory {
     private static final int READ_TIMEOUT_MS = 60_000;
 
     public RestTemplate createRestTemplate() {
+        return createRestTemplate(CONNECT_TIMEOUT_MS, READ_TIMEOUT_MS);
+    }
+
+    public RestTemplate createRestTemplate(int connectTimeoutMs, int readTimeoutMs) {
         var restTemplate = new RepeatableRestTemplate();
 
         var baseFactory = new SimpleClientHttpRequestFactory();
-        baseFactory.setConnectTimeout(CONNECT_TIMEOUT_MS);
-        baseFactory.setReadTimeout(READ_TIMEOUT_MS);
+        baseFactory.setConnectTimeout(connectTimeoutMs);
+        baseFactory.setReadTimeout(readTimeoutMs);
 
         restTemplate.setRequestFactory(new BufferingClientHttpRequestFactory(baseFactory));
         restTemplate.getInterceptors().add(loggingInterceptor());

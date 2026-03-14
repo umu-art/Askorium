@@ -25,6 +25,8 @@ import java.util.UUID;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
+import static java.util.Objects.isNull;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -49,6 +51,10 @@ public class PageProcessor {
     }
 
     private void normalizePageTexts(ScrappedPage page) {
+        if (isNull(page.getBlocks())) {
+            page.setBlocks(new ArrayList<>());
+        }
+
         page.getBlocks().forEach(block ->
                 block.setText(textProcessingService.normalizeText(block.getText())));
 

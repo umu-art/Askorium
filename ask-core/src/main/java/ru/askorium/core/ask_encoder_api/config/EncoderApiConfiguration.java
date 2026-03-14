@@ -14,12 +14,15 @@ public class EncoderApiConfiguration {
 
     private final RestTemplateFactory restTemplateFactory;
 
+    private static final int CONNECT_TIMEOUT_MS = 20_000;
+    private static final int READ_TIMEOUT_MS = 600_000;
+
     @Value("${askorium.api.encoder-url}")
     private String encoderUrl;
 
     @Bean
     public EncoderApi encoderApi() {
-        var apiClient = new ApiClient(restTemplateFactory.createRestTemplate());
+        var apiClient = new ApiClient(restTemplateFactory.createRestTemplate(CONNECT_TIMEOUT_MS, READ_TIMEOUT_MS));
         apiClient.setBasePath(encoderUrl);
         return new EncoderApi(apiClient);
     }
