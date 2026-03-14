@@ -41,11 +41,11 @@ spec:
 
           resources:
             requests:
-              cpu: "200m"
-              memory: "2500M"
+              cpu: "3000m"
+              memory: "3000M"
             limits:
-              cpu: "2000m"
-              memory: "2500M"
+              cpu: "3000m"
+              memory: "3000M"
 
           securityContext:
             allowPrivilegeEscalation: false
