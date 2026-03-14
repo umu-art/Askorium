@@ -17,6 +17,7 @@ import (
 	"ask-parser/internal/parser/text/prune"
 	"ask-parser/internal/parser/text/segment"
 	"ask-parser/internal/parser/text/selector"
+	"ask-parser/internal/parser/text/selector/scoring"
 )
 
 type GlobalPipeline struct {
@@ -30,7 +31,7 @@ func NewParser() Parser {
 		prune.NewChainPruner(
 			&prune.TagPruner{},
 			&prune.SemanticNoisePruner{},
-			&prune.VisibilityPruner{},       // TODO (omo-ri) implement [4]: убирает display:none/aria-hidden — если появится текст из скрытых элементов
+			&prune.VisibilityPruner{},       // DONE (omo-ri) implement [4]: убирает display:none/aria-hidden — если появится текст из скрытых элементов
 			&prune.BoilerplateClassPruner{}, // TODO (aidweserd) implement [2]: class/id паттерны (ambox, hatnote, sidebar, banner)
 		),
 		segment.NewDOMBlockSegmenter(),
@@ -40,12 +41,12 @@ func NewParser() Parser {
 			// TODO (omo-ri) add [3]: filter.NewMinWordCountFilter      — страховка от однословного мусора; порог 3
 			// TODO (aidweserd) add [7]: filter.NewBoilerplateContextFilter — контекстный фильтр (блоки после References/See also)
 		),
-		// TODO (omo-ri + aidweserd) replace [6]: PassThroughSelector → selector.NewScoredBlockSelector(
-		//     scoring.NewSemanticMarkupStrategy(),     — <main>/<article> → высокий score
-		//     scoring.NewReadabilityScoringStrategy(), — тип тега, class/id, запятые, пропагация
-		//     scoring.NewTextDensityScoringStrategy(), — textDensityQuotient по Boilerpipe
-		// )
-		&selector.PassThroughSelector{},
+		selector.NewScoredBlockSelector(
+			selector.DefaultClusterGap,
+			scoring.NewSemanticMarkupStrategy(),
+			scoring.NewReadabilityScoringStrategy(),
+			scoring.NewTextDensityStrategy(),
+		),
 		normalize.NewChainTextNormalizer(
 			&normalize.WhitespaceCollapseTransform{},
 			&normalize.TrimTransform{},

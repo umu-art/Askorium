@@ -11,7 +11,7 @@ const (
 	defaultInputQueue    = "askorium.render.output"
 	defaultOutputQueue   = "askorium.parser.output"
 	defaultPrefetchCount = "10"
-	defaultLogLevel      = "info"
+	defaultLogLevel      = "debug"
 )
 
 type Config struct {
