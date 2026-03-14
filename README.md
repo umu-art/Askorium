@@ -1,5 +1,6 @@
 # Askorium
 [![ArgoCD](https://argocd.kazenin.ru/api/badge?project=askorium&revision=true)](https://argocd.kazenin.ru/api/badge?project=askorium&revision=true)
+[![Assembling this whole mess](https://github.com/umu-art/Askorium/actions/workflows/entrypoint.yml/badge.svg)](https://github.com/umu-art/Askorium/actions/workflows/entrypoint.yml)
 
 Данная курсовая работа направлена на разработку системы семантического поиска
 «Аскориум», предназначенной для работы в рамках одного сайта. Система автоматически
