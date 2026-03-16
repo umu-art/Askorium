@@ -34,7 +34,7 @@ func NewParser() Parser {
 			&prune.VisibilityPruner{},
 			&prune.BoilerplateClassPruner{},
 		),
-		segment.NewDOMBlockSegmenter(), // TODO (aidweserd) добавить объединение списков
+		segment.NewEnhancedDOMBlockSegmenter(&segment.CompactTableSerializer{}),
 		filter.NewChainBlockCleaner(
 			filter.NewMinCharLengthFilter(filter.DefaultMinCharLength),
 			filter.NewMaxLinkDensityFilter(filter.DefaultMaxLinkDensity),
