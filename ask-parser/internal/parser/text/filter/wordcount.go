@@ -4,8 +4,17 @@ import "ask-parser/internal/parser/text"
 
 var _ text.BlockFilter = (*MinWordCountFilter)(nil)
 
-// MinWordCountFilter is a no-op stub for V1 (always passes).
-// V2: block.WordCount >= threshold.
-type MinWordCountFilter struct{}
+const DefaultMinWordCount = 3
 
-func (f *MinWordCountFilter) Keep(_ text.RawBlock) bool { return true }
+// MinWordCountFilter drops blocks with fewer than threshold words.
+type MinWordCountFilter struct {
+	min int
+}
+
+func NewMinWordCountFilter(min int) *MinWordCountFilter {
+	return &MinWordCountFilter{min: min}
+}
+
+func (f *MinWordCountFilter) Keep(block text.RawBlock) bool {
+	return block.WordCount >= f.min
+}

@@ -31,15 +31,15 @@ func NewParser() Parser {
 		prune.NewChainPruner(
 			&prune.TagPruner{},
 			&prune.SemanticNoisePruner{},
-			&prune.VisibilityPruner{},       // DONE (omo-ri) implement [4]: убирает display:none/aria-hidden — если появится текст из скрытых элементов
-			&prune.BoilerplateClassPruner{}, // TODO (aidweserd) implement [2]: class/id паттерны (ambox, hatnote, sidebar, banner)
+			&prune.VisibilityPruner{},
+			&prune.BoilerplateClassPruner{},
 		),
-		segment.NewDOMBlockSegmenter(),
+		segment.NewEnhancedDOMBlockSegmenter(&segment.CompactTableSerializer{}),
 		filter.NewChainBlockCleaner(
 			filter.NewMinCharLengthFilter(filter.DefaultMinCharLength),
 			filter.NewMaxLinkDensityFilter(filter.DefaultMaxLinkDensity),
-			// TODO (omo-ri) add [3]: filter.NewMinWordCountFilter      — страховка от однословного мусора; порог 3
-			// TODO (aidweserd) add [7]: filter.NewBoilerplateContextFilter — контекстный фильтр (блоки после References/See also)
+			filter.NewMinWordCountFilter(filter.DefaultMinWordCount),
+			filter.NewBoilerplateContextFilter(),
 		),
 		selector.NewScoredBlockSelector(
 			selector.DefaultClusterGap,
@@ -50,8 +50,8 @@ func NewParser() Parser {
 		normalize.NewChainTextNormalizer(
 			&normalize.WhitespaceCollapseTransform{},
 			&normalize.TrimTransform{},
-			// TODO (omo-ri) add [5]: &normalize.ValidUTF8Transform{}         — зачистка невалидных UTF-8 последовательностей
-			// TODO (aidweserd) add [5]: &normalize.ControlCharStripTransform{} — зачистка управляющих символов
+			&normalize.ValidUTF8Transform{},
+			&normalize.ControlCharStripTransform{},
 		),
 	)
 
