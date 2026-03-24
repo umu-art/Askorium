@@ -35,6 +35,12 @@ func IsDocumentURL(href string) bool {
 	return ok
 }
 
+func IsImageURL(href string) bool {
+	ext := strings.ToLower(path.Ext(href))
+	_, ok := imageExtensions[ext]
+	return ok
+}
+
 func MimeFromExtension(ext string) string {
 	ext = strings.ToLower(ext)
 	if mime, ok := documentExtensions[ext]; ok {
@@ -50,9 +56,16 @@ func NewDocumentFromAnchor(href, anchorText string) scrappermodel.Document {
 	ext := strings.ToLower(path.Ext(href))
 	doc := *scrappermodel.NewDocument(href, MimeFromExtension(ext))
 	text := strings.TrimSpace(anchorText)
-	if text != "" {
+	switch {
+	case text != "":
 		doc.SetDescription(text)
 		doc.SetDescriptionSource(scrappermodel.DOCUMENTDESCRIPTIONSOURCETYPE_PARAGRAPH)
+	default:
+		name := strings.TrimSuffix(path.Base(href), ext)
+		if name != "" && name != "." {
+			doc.SetDescription(name)
+			doc.SetDescriptionSource(scrappermodel.DOCUMENTDESCRIPTIONSOURCETYPE_FILENAME)
+		}
 	}
 	return doc
 }
@@ -67,7 +80,7 @@ func NewDocumentFromImg(src, alt string) scrappermodel.Document {
 	alt = strings.TrimSpace(alt)
 	if alt != "" {
 		doc.SetDescription(alt)
-		doc.SetDescriptionSource(scrappermodel.DOCUMENTDESCRIPTIONSOURCETYPE_PARAGRAPH)
+		doc.SetDescriptionSource(scrappermodel.DOCUMENTDESCRIPTIONSOURCETYPE_ALT_TEXT)
 	}
 	return doc
 }

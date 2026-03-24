@@ -2,3 +2,7 @@ aio-pika==9.6.1
 pydantic-settings>=2.13.1
 playwright==1.58.0
 prometheus-client==0.24.1
+PyMuPDF>=1.24.0
+python-docx>=1.1.0
+openpyxl>=3.1.0
+httpx>=0.28.0

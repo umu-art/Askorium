@@ -1,0 +1,46 @@
+services:
+  renderer:
+    build:
+      context: ..
+      dockerfile: .e2e-test-scrapper/Dockerfile.renderer
+    environment:
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672/
+    networks:
+      - askorium_default
+    restart: on-failure
+
+  parser:
+    build:
+      context: ..
+      dockerfile: .e2e-test-scrapper/Dockerfile.parser
+    environment:
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672/
+    networks:
+      - askorium_default
+    restart: on-failure
+
+  crawler:
+    build:
+      context: ..
+      dockerfile: .e2e-test-crawler/Dockerfile.crawler
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    networks:
+      - askorium_default
+    restart: on-failure
+
+  listener:
+    build:
+      context: .
+      dockerfile: Dockerfile.listen
+    environment:
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672/
+    volumes:
+      - ./output:/app/output
+    networks:
+      - askorium_default
+    restart: on-failure
+
+networks:
+  askorium_default:
+    external: true

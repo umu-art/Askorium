@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -117,8 +118,10 @@ func (s *CrawlerService) HandleScrapeResult(ctx context.Context, msg []byte) err
 	currentDepth := extractDepth(resp.Metadata)
 
 	if resp.Success && resp.Page != nil {
-		page := applib.MapPage(*resp.Page)
+		sourcePageURL := extractSourcePageURL(resp.Metadata)
+		page := applib.MapPage(*resp.Page, sourcePageURL)
 		s.enqueueLinks(job, resp.Page.Links, currentDepth)
+		s.enqueueDocuments(job, resp.Page.Documents, resp.Page.Url)
 		job.IncrScraped()
 		job.AddPage(page)
 	} else {
@@ -133,14 +136,19 @@ func (s *CrawlerService) HandleScrapeResult(ctx context.Context, msg []byte) err
 
 func (s *CrawlerService) fillPipeline(ctx context.Context, job *applib.JobState) error {
 	for {
-		if job.LimitReached() || job.InFlightCount() >= job.Concurrency {
+		if job.InFlightCount() >= job.Concurrency {
 			break
 		}
 		entry, ok := job.Dequeue()
 		if !ok {
 			break
 		}
-		if job.MaxDepth > 0 && entry.Depth > job.MaxDepth {
+		isDoc := entry.ContentTypeHint != ""
+		// HTML pages respect the page limit; documents are always processed.
+		if !isDoc && job.LimitReached() {
+			continue
+		}
+		if !isDoc && job.MaxDepth > 0 && entry.Depth > job.MaxDepth {
 			s.logger.Debug("crawler: skipping URL, depth limit",
 				"task_id", job.TaskID,
 				"url", entry.URL,
@@ -168,13 +176,21 @@ func (s *CrawlerService) fillPipeline(ctx context.Context, job *applib.JobState)
 }
 
 func (s *CrawlerService) sendToRenderer(ctx context.Context, job *applib.JobState, entry applib.URLEntry) error {
+	metadata := map[string]interface{}{
+		"depth":   entry.Depth,
+		"src_url": entry.URL,
+	}
+	if entry.ContentTypeHint != "" {
+		metadata["content_type_hint"] = entry.ContentTypeHint
+	}
+	if entry.SourcePageURL != "" {
+		metadata["source_page_url"] = entry.SourcePageURL
+	}
+
 	renderInput := render_model.RenderInput{
-		TaskId: job.TaskID,
-		Url:    entry.URL,
-		Metadata: map[string]interface{}{
-			"depth":   entry.Depth,
-			"src_url": entry.URL,
-		},
+		TaskId:   job.TaskID,
+		Url:      entry.URL,
+		Metadata: metadata,
 	}
 
 	body, err := json.Marshal(renderInput)
@@ -333,12 +349,49 @@ func (s *CrawlerService) expireInFlight(ctx context.Context) {
 	}
 }
 
+func (s *CrawlerService) enqueueDocuments(job *applib.JobState, docs []scrapper_model.Document, sourcePageURL string) {
+	for _, d := range docs {
+		hint := extensionHint(d.MimeType)
+		if hint == "" {
+			continue
+		}
+		job.EnqueueDocument(d.Url, hint, sourcePageURL)
+	}
+}
+
+func extensionHint(mime string) string {
+	switch {
+	case mime == "application/pdf":
+		return "pdf"
+	case strings.Contains(mime, "wordprocessingml"):
+		return "docx"
+	case strings.Contains(mime, "spreadsheetml"):
+		return "xlsx"
+	case strings.Contains(mime, "vnd.ms-excel"):
+		return "xls"
+	default:
+		return ""
+	}
+}
+
 // extractSrcURL читает оригинальный URL из metadata сообщения.
 func extractSrcURL(metadata map[string]interface{}) string {
 	if metadata == nil {
 		return ""
 	}
 	v, ok := metadata["src_url"]
+	if !ok {
+		return ""
+	}
+	s, _ := v.(string)
+	return s
+}
+
+func extractSourcePageURL(metadata map[string]interface{}) string {
+	if metadata == nil {
+		return ""
+	}
+	v, ok := metadata["source_page_url"]
 	if !ok {
 		return ""
 	}

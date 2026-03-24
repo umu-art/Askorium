@@ -1,0 +1,14 @@
+# Build context: repo root
+FROM mcr.microsoft.com/playwright/python:v1.58.0-jammy
+
+WORKDIR /app
+
+COPY api/build/python-renderer-api /api-pkg
+RUN pip install --no-cache-dir /api-pkg
+
+COPY ask-renderer/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY ask-renderer .
+
+CMD ["python", "-m", "app.main"]

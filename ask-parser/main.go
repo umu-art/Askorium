@@ -45,7 +45,8 @@ func main() {
 	})
 
 	askParser := parser.NewParser()
-	h := handler.NewHandler(askParser, publisher, logger)
+	docParser := parser.NewDocumentParser()
+	h := handler.NewHandler(askParser, docParser, publisher, logger)
 
 	broker.RegisterConsumer(amqpimpl.ConsumerConfig{
 		Queue:       cfg.InputQueue,

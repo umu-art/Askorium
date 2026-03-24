@@ -3,9 +3,9 @@ import time
 import pika, json, os
 from datetime import datetime
 
-conn = pika.BlockingConnection(pika.URLParameters("amqp://guest:guest@localhost:5672/"))
+conn = pika.BlockingConnection(pika.URLParameters(os.getenv("AMQP_URL", "amqp://guest:guest@localhost:5672/")))
 ch = conn.channel()
-ch.queue_declare(queue="askorium.parser.output", durable=True, passive=True)
+ch.queue_declare(queue="askorium.parser.output", durable=True)
 
 def url_to_filename(url: str) -> str:
     import re

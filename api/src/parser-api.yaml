@@ -110,6 +110,9 @@ components:
           description: Вложения (изображения, PDF и т.п.) с возможным описанием/текстом.
           items:
             $ref: '#/components/schemas/Document'
+        source_page_url:
+          type: string
+          description: URL страницы, на которой найдена ссылка на этот документ. Заполняется краулером только для документных страниц.
 
     ContentBlock:
       type: object
@@ -207,4 +210,6 @@ components:
         - heading
         - paragraph
         - listItem
+        - altText
+        - filename
       example: paragraph

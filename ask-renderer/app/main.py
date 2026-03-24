@@ -4,6 +4,7 @@ import signal
 
 from app.config import config
 from app.browser_manager import BrowserManager
+from app.document_renderer import DocumentRenderer
 from app.health import HealthServer
 from app.rabbitmq.broker import Broker
 from app.rabbitmq.consumer import RabbitMQConsumer
@@ -46,7 +47,8 @@ async def main() -> None:
         )
         await broker.declare_queue_with_dlq(config.OUTPUT_QUEUE)
 
-        handler = MessageHandler(browser_manager, broker, config.OUTPUT_QUEUE)
+        document_renderer = DocumentRenderer()
+        handler = MessageHandler(browser_manager, document_renderer, broker, config.OUTPUT_QUEUE)
         consumer = RabbitMQConsumer(input_queue, handler)
 
         health = HealthServer()
