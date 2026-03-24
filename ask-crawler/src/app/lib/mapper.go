@@ -5,7 +5,7 @@ import (
 	scrapper_model "github.com/omo-ri/askorium/go-parser-api"
 )
 
-func MapPage(p scrapper_model.ScrappedPage) crawler_model.ScrappedPage {
+func MapPage(p scrapper_model.ScrappedPage, sourcePageURL string) crawler_model.ScrappedPage {
 	page := crawler_model.ScrappedPage{
 		Url:         p.Url,
 		Title:       p.Title,
@@ -17,6 +17,9 @@ func MapPage(p scrapper_model.ScrappedPage) crawler_model.ScrappedPage {
 
 	if p.LastModified != nil {
 		page.LastModified = p.LastModified
+	}
+	if sourcePageURL != "" {
+		page.SetSourcePageUrl(sourcePageURL)
 	}
 
 	for _, b := range p.Blocks {

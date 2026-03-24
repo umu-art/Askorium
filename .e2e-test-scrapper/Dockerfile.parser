@@ -1,0 +1,18 @@
+# Build context: repo root
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+# Copy local API packages (referenced via replace directives in go.mod)
+COPY api/build/go-parser-api   ../api/build/go-parser-api
+COPY api/build/go-renderer-api ../api/build/go-renderer-api
+
+COPY ask-parser/go.mod ask-parser/go.sum ./
+RUN go mod download
+
+COPY ask-parser/ .
+RUN go build -o /ask-parser-bin .
+
+FROM alpine:3.21
+COPY --from=builder /ask-parser-bin /ask-parser-bin
+CMD ["/ask-parser-bin"]

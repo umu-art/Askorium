@@ -86,7 +86,7 @@ func unmarshalResponse(t *testing.T, data []byte) scrappermodel.ScrapeResponse {
 // --- tests ---
 
 func TestHandler_InvalidJSON(t *testing.T) {
-	h := handler.NewHandler(&mockParser{}, &mockPublisher{}, noopLogger)
+	h := handler.NewHandler(&mockParser{}, &mockParser{}, &mockPublisher{}, noopLogger)
 	action := h(context.Background(), []byte("not json"))
 
 	if action != amqpimpl.NackDiscard {
@@ -96,7 +96,7 @@ func TestHandler_InvalidJSON(t *testing.T) {
 
 func TestHandler_RenderFailed_ForwardsError(t *testing.T) {
 	pub := &mockPublisher{}
-	h := handler.NewHandler(&mockParser{}, pub, noopLogger)
+	h := handler.NewHandler(&mockParser{}, &mockParser{}, pub, noopLogger)
 
 	msg := makeRenderError("task-1", "TIMEOUT", "page timed out")
 	action := h(context.Background(), msg)
@@ -123,7 +123,7 @@ func TestHandler_RenderFailed_ForwardsError(t *testing.T) {
 
 func TestHandler_RenderFailed_NoError(t *testing.T) {
 	pub := &mockPublisher{}
-	h := handler.NewHandler(&mockParser{}, pub, noopLogger)
+	h := handler.NewHandler(&mockParser{}, &mockParser{}, pub, noopLogger)
 
 	msg := makeRenderOutput("task-2", false, "", nil)
 	action := h(context.Background(), msg)
@@ -150,7 +150,7 @@ func TestHandler_ParseSuccess(t *testing.T) {
 		},
 	)
 	pub := &mockPublisher{}
-	h := handler.NewHandler(&mockParser{page: page}, pub, noopLogger)
+	h := handler.NewHandler(&mockParser{page: page}, &mockParser{page: page}, pub, noopLogger)
 
 	msg := makeRenderOutput("task-3", true, "<html><body><h1>Hello</h1></body></html>", nil)
 	action := h(context.Background(), msg)
@@ -175,7 +175,7 @@ func TestHandler_ParseSuccess(t *testing.T) {
 func TestHandler_ParseError(t *testing.T) {
 	pub := &mockPublisher{}
 	p := &mockParser{err: errors.New("broken html")}
-	h := handler.NewHandler(p, pub, noopLogger)
+	h := handler.NewHandler(p, p, pub, noopLogger)
 
 	msg := makeRenderOutput("task-4", true, "<html>bad</html>", nil)
 	action := h(context.Background(), msg)
@@ -197,7 +197,7 @@ func TestHandler_ParseError(t *testing.T) {
 func TestHandler_PublishFailed(t *testing.T) {
 	pub := &mockPublisher{err: errors.New("connection lost")}
 	page := scrappermodel.NewScrappedPage("https://example.com", "T", nil)
-	h := handler.NewHandler(&mockParser{page: page}, pub, noopLogger)
+	h := handler.NewHandler(&mockParser{page: page}, &mockParser{page: page}, pub, noopLogger)
 
 	msg := makeRenderOutput("task-5", true, "<html></html>", nil)
 	action := h(context.Background(), msg)
@@ -210,7 +210,7 @@ func TestHandler_PublishFailed(t *testing.T) {
 func TestHandler_MetadataPassthrough(t *testing.T) {
 	page := scrappermodel.NewScrappedPage("https://example.com", "T", nil)
 	pub := &mockPublisher{}
-	h := handler.NewHandler(&mockParser{page: page}, pub, noopLogger)
+	h := handler.NewHandler(&mockParser{page: page}, &mockParser{page: page}, pub, noopLogger)
 
 	meta := map[string]interface{}{"crawl_id": "abc", "depth": float64(2)}
 	msg := makeRenderOutput("task-6", true, "<html></html>", meta)
@@ -236,7 +236,7 @@ func TestHandler_MetadataPassthrough(t *testing.T) {
 func TestHandler_NoMetadata(t *testing.T) {
 	page := scrappermodel.NewScrappedPage("https://example.com", "T", nil)
 	pub := &mockPublisher{}
-	h := handler.NewHandler(&mockParser{page: page}, pub, noopLogger)
+	h := handler.NewHandler(&mockParser{page: page}, &mockParser{page: page}, pub, noopLogger)
 
 	msg := makeRenderOutput("task-7", true, "<html></html>", nil)
 	h(context.Background(), msg)

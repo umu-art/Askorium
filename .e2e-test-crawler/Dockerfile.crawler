@@ -1,0 +1,19 @@
+# Build context: repo root
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+# Local API packages (replace directives in go.mod)
+COPY api/build/go-parser-api   ../api/build/go-parser-api
+COPY api/build/go-renderer-api ../api/build/go-renderer-api
+COPY api/build/go-crawler-api  ../api/build/go-crawler-api
+
+COPY ask-crawler/go.mod ask-crawler/go.sum ./
+RUN go mod download
+
+COPY ask-crawler/ .
+RUN go build -o /ask-crawler-bin .
+
+FROM alpine:3.21
+COPY --from=builder /ask-crawler-bin /ask-crawler-bin
+CMD ["/ask-crawler-bin"]

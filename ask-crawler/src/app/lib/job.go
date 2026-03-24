@@ -9,8 +9,10 @@ import (
 
 // URLEntry — элемент очереди обхода.
 type URLEntry struct {
-	URL   string
-	Depth int32
+	URL             string
+	Depth           int32
+	ContentTypeHint string // "" для HTML-страниц
+	SourcePageURL   string // заполняется только для документных ссылок
 }
 
 // JobState хранит состояние одной задачи краулинга в памяти.
@@ -56,6 +58,21 @@ func (j *JobState) Enqueue(url string, depth int32) {
 	}
 	j.visited[url] = true
 	j.frontier = append(j.frontier, URLEntry{URL: url, Depth: depth})
+}
+
+// EnqueueDocument добавляет документную ссылку в очередь с hint и source.
+func (j *JobState) EnqueueDocument(url, contentTypeHint, sourcePageURL string) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	if j.visited[url] {
+		return
+	}
+	j.visited[url] = true
+	j.frontier = append(j.frontier, URLEntry{
+		URL:             url,
+		ContentTypeHint: contentTypeHint,
+		SourcePageURL:   sourcePageURL,
+	})
 }
 
 // Dequeue извлекает следующий URL из очереди. Возвращает false если очередь пуста.

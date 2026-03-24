@@ -61,7 +61,38 @@ func NewParser() Parser {
 			extract.NewMetadataExtractor(), // TODO add [10]: JSON-LD парсинг (text/meta/jsonld.go) — articleBody, datePublished, author
 			extract.NewTextExtractor(textPipeline),
 			extract.NewLinkExtractor(),
-			extract.NewDocumentExtractor(), // TODO implement [9]: извлечение PDF/DOCX ссылок
+			extract.NewDocumentExtractor(),
+		},
+		assembler: assemble.NewDefaultAssembler(),
+	}
+}
+
+// NewDocumentParser returns a simplified parser for pre-converted document HTML
+// (PDF, DOCX, XLSX). Boilerplate filters are omitted — documents have no navigation.
+func NewDocumentParser() Parser {
+	textPipeline := text.NewDefaultTextPipeline(
+		prune.NewChainPruner(
+			&prune.TagPruner{},
+			&prune.VisibilityPruner{},
+		),
+		segment.NewDOMBlockSegmenter(),
+		filter.NewChainBlockCleaner(
+			filter.NewMinCharLengthFilter(filter.DefaultMinCharLength),
+		),
+		&selector.PassThroughSelector{},
+		normalize.NewChainTextNormalizer(
+			&normalize.WhitespaceCollapseTransform{},
+			&normalize.TrimTransform{},
+			&normalize.ValidUTF8Transform{},
+			&normalize.ControlCharStripTransform{},
+		),
+	)
+
+	return &GlobalPipeline{
+		analyzer: analyze.NewStubAnalyzer(),
+		extractors: []core.Extractor{
+			extract.NewMetadataExtractor(),
+			extract.NewTextExtractor(textPipeline),
 		},
 		assembler: assemble.NewDefaultAssembler(),
 	}

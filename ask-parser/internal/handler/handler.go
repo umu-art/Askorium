@@ -13,7 +13,7 @@ import (
 	renderermodel "github.com/omo-ri/askorium/go-renderer-api"
 )
 
-func NewHandler(p parser.Parser, publisher amqp.MessagePublisher, logger *slog.Logger) amqpimpl.Handler {
+func NewHandler(defaultParser parser.Parser, documentParser parser.Parser, publisher amqp.MessagePublisher, logger *slog.Logger) amqpimpl.Handler {
 	return func(ctx context.Context, msg []byte) amqpimpl.AckAction {
 		var input renderermodel.RenderOutput
 		if err := json.Unmarshal(msg, &input); err != nil {
@@ -36,6 +36,7 @@ func NewHandler(p parser.Parser, publisher amqp.MessagePublisher, logger *slog.L
 				resp.SetError(*scrapeErr)
 			}
 		} else {
+			p := selectParser(input.GetMetadata(), defaultParser, documentParser)
 			page, err := p.Parse(input.GetHtml(), input.GetUrl())
 			if err != nil {
 				logger.Error("parse failed", "task_id", taskID, "error", err)
@@ -66,4 +67,17 @@ func NewHandler(p parser.Parser, publisher amqp.MessagePublisher, logger *slog.L
 		logger.Info("task completed", "task_id", taskID, "success", resp.GetSuccess())
 		return amqpimpl.Ack
 	}
+}
+
+// selectParser выбирает парсер по content_type_hint из metadata.
+// HTML-страницы и неизвестные типы → defaultParser.
+func selectParser(metadata map[string]interface{}, defaultParser, documentParser parser.Parser) parser.Parser {
+	if metadata == nil {
+		return defaultParser
+	}
+	hint, _ := metadata["content_type_hint"].(string)
+	if hint != "" && hint != "html" {
+		return documentParser
+	}
+	return defaultParser
 }
