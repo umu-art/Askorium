@@ -5,7 +5,6 @@ import logging
 import shutil
 import subprocess
 import sys
-import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -109,10 +108,8 @@ def install_generated(build_dir, langs=None):
     dirs = [d for d in build_dir.glob("*-api")
             if langs is None or d.name.split('-')[0] in langs]
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        futures = [executor.submit(install_dir, d) for d in dirs]
-        for f in as_completed(futures):
-            f.result()
+    for d in dirs:
+        install_dir(d)
 
 
 def process_config(config_file, jar_file, build_dir, src_dir, force=False):
