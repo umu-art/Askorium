@@ -1,5 +1,34 @@
 package scoring
 
+// English function words for stopword density gating.
+// Prepositions, conjunctions, pronouns, articles, auxiliary verbs.
+var enStopwords = []string{
+	"a", "about", "above", "after", "again", "against", "all", "am", "an",
+	"and", "any", "are", "as", "at",
+	"be", "because", "been", "before", "being", "below", "between", "both",
+	"but", "by",
+	"can", "could",
+	"did", "do", "does", "doing", "down", "during",
+	"each", "even",
+	"few", "for", "from",
+	"had", "has", "have", "having", "he", "her", "here", "hers", "herself",
+	"him", "himself", "his", "how",
+	"i", "if", "in", "into", "is", "it", "its", "itself",
+	"just",
+	"me", "might", "more", "most", "must", "my", "myself",
+	"no", "nor", "not", "now",
+	"of", "off", "on", "once", "only", "or", "other", "our", "ours",
+	"ourselves", "out", "over", "own",
+	"same", "she", "should", "so", "some", "such",
+	"than", "that", "the", "their", "theirs", "them", "themselves", "then",
+	"there", "these", "they", "this", "those", "through", "to", "too",
+	"under", "until", "up", "us",
+	"very",
+	"was", "we", "were", "what", "when", "where", "which", "while", "who",
+	"whom", "why", "will", "with", "would",
+	"you", "your", "yours", "yourself", "yourselves",
+}
+
 // Russian function words for stopword density gating.
 // Source: filtered from the project's Russian stopword list, keeping only
 // prepositions, conjunctions, pronouns, particles, and auxiliary verb forms.
@@ -47,8 +76,11 @@ var ruStopwords = []string{
 }
 
 func getStopwords() map[string]struct{} {
-	set := make(map[string]struct{}, len(ruStopwords))
+	set := make(map[string]struct{}, len(ruStopwords)+len(enStopwords))
 	for _, w := range ruStopwords {
+		set[w] = struct{}{}
+	}
+	for _, w := range enStopwords {
 		set[w] = struct{}{}
 	}
 	return set

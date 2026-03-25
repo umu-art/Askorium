@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"ask-parser/internal/parser/text/selector/scoring"
 	"fmt"
 	"strings"
 
@@ -17,7 +18,6 @@ import (
 	"ask-parser/internal/parser/text/prune"
 	"ask-parser/internal/parser/text/segment"
 	"ask-parser/internal/parser/text/selector"
-	"ask-parser/internal/parser/text/selector/scoring"
 )
 
 type GlobalPipeline struct {
