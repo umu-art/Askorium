@@ -30,7 +30,7 @@ spec:
 
           env:
             - name: CRAWLER_BATCH_MODE
-              value: true
+              value: "true"
 
 #          livenessProbe:
 #            httpGet:
