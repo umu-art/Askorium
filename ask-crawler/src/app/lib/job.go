@@ -7,12 +7,32 @@ import (
 	crawler_model "github.com/omo-ri/askorium/go-crawler-api"
 )
 
-// URLEntry — элемент очереди обхода.
-type URLEntry struct {
-	URL             string
-	Depth           int32
-	ContentTypeHint string // "" для HTML-страниц
-	SourcePageURL   string // заполняется только для документных ссылок
+// PageStatus описывает жизненный цикл одной страницы в рамках задачи.
+type PageStatus int
+
+const (
+	PageStatusQueued    PageStatus = iota // в frontier, ещё не отправлена
+	PageStatusRendering                   // отправлена в renderer, ждём ответа
+	PageStatusParsed                      // получен результат, ждёт батча
+	PageStatusBatched                     // включена в CrawlEvent, отправлена
+	PageStatusFailed                      // ошибка на любом этапе
+)
+
+// PageProgress хранит полный lifecycle одной страницы внутри задачи краулинга.
+type PageProgress struct {
+	URL   string
+	Depth int32
+	IsDoc bool // true для документных ссылок
+
+	Status PageStatus
+
+	EnqueuedAt time.Time
+	SentAt     time.Time // момент отправки в renderer
+	ParsedAt   time.Time
+	BatchedAt  time.Time
+
+	Result *crawler_model.ScrappedPage // заполняется после Parsed
+	Error  string
 }
 
 // JobState хранит состояние одной задачи краулинга в памяти.
@@ -28,14 +48,13 @@ type JobState struct {
 
 	mu           sync.Mutex
 	visited      map[string]bool
-	frontier     []URLEntry
-	pages        []crawler_model.ScrappedPage
+	frontier     Frontier
+	progress     map[string]*PageProgress // key: URL
 	pagesScraped int32
 	pagesFailed  int32
-	inFlightAt   map[string]time.Time // key: оригинальный URL, отправленный в renderer
 }
 
-func NewJobState(taskID, domain string, maxDepth, maxPages, concurrency int32, metadata map[string]interface{}) *JobState {
+func NewJobState(taskID, domain string, maxDepth, maxPages, concurrency int32, metadata map[string]interface{}, frontier Frontier) *JobState {
 	return &JobState{
 		TaskID:      taskID,
 		Domain:      domain,
@@ -45,121 +64,142 @@ func NewJobState(taskID, domain string, maxDepth, maxPages, concurrency int32, m
 		Metadata:    metadata,
 		StartedAt:   time.Now(),
 		visited:     make(map[string]bool),
-		inFlightAt:  make(map[string]time.Time),
+		frontier:    frontier,
+		progress:    make(map[string]*PageProgress),
 	}
 }
 
-// Enqueue добавляет URL в очередь если он ещё не был посещён.
-func (j *JobState) Enqueue(url string, depth int32) {
+// Enqueue добавляет URL во frontier если он ещё не был посещён.
+func (j *JobState) Enqueue(c URLCandidate) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	if j.visited[url] {
+	if j.visited[c.URL] {
 		return
 	}
-	j.visited[url] = true
-	j.frontier = append(j.frontier, URLEntry{URL: url, Depth: depth})
+	j.visited[c.URL] = true
+	j.progress[c.URL] = &PageProgress{
+		URL:        c.URL,
+		Depth:      c.Depth,
+		IsDoc:      c.ContentTypeHint != "",
+		Status:     PageStatusQueued,
+		EnqueuedAt: time.Now(),
+	}
+	j.frontier.Push(c)
 }
 
-// EnqueueDocument добавляет документную ссылку в очередь с hint и source.
-func (j *JobState) EnqueueDocument(url, contentTypeHint, sourcePageURL string) {
+// Dequeue извлекает следующий кандидат из frontier. Возвращает false если очередь пуста.
+func (j *JobState) Dequeue() (URLCandidate, bool) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	if j.visited[url] {
-		return
-	}
-	j.visited[url] = true
-	j.frontier = append(j.frontier, URLEntry{
-		URL:             url,
-		ContentTypeHint: contentTypeHint,
-		SourcePageURL:   sourcePageURL,
-	})
+	return j.frontier.Pop()
 }
 
-// Dequeue извлекает следующий URL из очереди. Возвращает false если очередь пуста.
-func (j *JobState) Dequeue() (URLEntry, bool) {
+// FrontierLen возвращает текущий размер frontier.
+func (j *JobState) FrontierLen() int {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	if len(j.frontier) == 0 {
-		return URLEntry{}, false
-	}
-	entry := j.frontier[0]
-	j.frontier = j.frontier[1:]
-	return entry, true
+	return j.frontier.Len()
 }
 
-// LimitReached возвращает true если достигнут лимит страниц.
+// LimitReached возвращает true если достигнут лимит HTML-страниц.
 func (j *JobState) LimitReached() bool {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	return j.pagesScraped >= j.MaxPages
 }
 
-func (j *JobState) IncrScraped() {
-	j.mu.Lock()
-	j.pagesScraped++
-	j.mu.Unlock()
-}
-
-func (j *JobState) IncrFailed() {
-	j.mu.Lock()
-	j.pagesFailed++
-	j.mu.Unlock()
-}
-
-// AddPage добавляет успешно обработанную страницу в накопитель.
-func (j *JobState) AddPage(page crawler_model.ScrappedPage) {
-	j.mu.Lock()
-	j.pages = append(j.pages, page)
-	j.mu.Unlock()
-}
-
-// Pages возвращает копию накопленных страниц.
-func (j *JobState) Pages() []crawler_model.ScrappedPage {
+// MarkRendering переводит страницу в статус Rendering (отправлена в renderer).
+func (j *JobState) MarkRendering(url string) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	result := make([]crawler_model.ScrappedPage, len(j.pages))
-	copy(result, j.pages)
-	return result
+	if p, ok := j.progress[url]; ok {
+		p.Status = PageStatusRendering
+		p.SentAt = time.Now()
+	}
 }
 
-func (j *JobState) IncrInFlight(url string) {
+// MarkParsed записывает результат парсинга и переводит страницу в статус Parsed.
+func (j *JobState) MarkParsed(url string, result crawler_model.ScrappedPage) {
 	j.mu.Lock()
-	j.inFlightAt[url] = time.Now()
-	j.mu.Unlock()
+	defer j.mu.Unlock()
+	if p, ok := j.progress[url]; ok {
+		p.Status = PageStatusParsed
+		p.ParsedAt = time.Now()
+		p.Result = &result
+		j.pagesScraped++
+	}
 }
 
-func (j *JobState) DecrInFlight(url string) {
+// MarkFailed переводит страницу в статус Failed.
+func (j *JobState) MarkFailed(url string, reason string) {
 	j.mu.Lock()
-	delete(j.inFlightAt, url)
-	j.mu.Unlock()
+	defer j.mu.Unlock()
+	if p, ok := j.progress[url]; ok {
+		p.Status = PageStatusFailed
+		p.Error = reason
+		j.pagesFailed++
+	}
 }
 
+// InFlightCount возвращает число страниц в статусе Rendering.
 func (j *JobState) InFlightCount() int32 {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	return int32(len(j.inFlightAt))
+	var count int32
+	for _, p := range j.progress {
+		if p.Status == PageStatusRendering {
+			count++
+		}
+	}
+	return count
 }
 
-// IsDone возвращает true когда frontier пуст и нет страниц в обработке.
+// IsDone возвращает true когда frontier пуст и нет страниц в состоянии Rendering или Parsed.
 func (j *JobState) IsDone() bool {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	return len(j.frontier) == 0 && len(j.inFlightAt) == 0
+	if j.frontier.Len() > 0 {
+		return false
+	}
+	for _, p := range j.progress {
+		if p.Status == PageStatusRendering || p.Status == PageStatusParsed {
+			return false
+		}
+	}
+	return true
 }
 
-// ExpireInFlight удаляет из in-flight записи, превысившие timeout,
-// инкрементирует pagesFailed и возвращает список просроченных URL.
+// DrainParsed возвращает до limit страниц в статусе Parsed и переводит их в Batched.
+func (j *JobState) DrainParsed(limit int) []*PageProgress {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	var result []*PageProgress
+	for _, p := range j.progress {
+		if p.Status == PageStatusParsed {
+			p.Status = PageStatusBatched
+			p.BatchedAt = time.Now()
+			result = append(result, p)
+			if len(result) >= limit {
+				break
+			}
+		}
+	}
+	return result
+}
+
+// ExpireInFlight удаляет из Rendering записи, превысившие timeout,
+// переводит их в Failed и возвращает список просроченных URL.
 func (j *JobState) ExpireInFlight(timeout time.Duration) []string {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-
 	var expired []string
 	now := time.Now()
-	for url, sentAt := range j.inFlightAt {
-		if now.Sub(sentAt) > timeout {
-			expired = append(expired, url)
-			delete(j.inFlightAt, url)
+	for url, p := range j.progress {
+		if p.Status == PageStatusRendering && now.Sub(p.SentAt) > timeout {
+			p.Status = PageStatusFailed
+			p.Error = "in-flight TTL expired"
 			j.pagesFailed++
+			expired = append(expired, url)
 		}
 	}
 	return expired
@@ -169,5 +209,5 @@ func (j *JobState) ExpireInFlight(timeout time.Duration) []string {
 func (j *JobState) Stats() (scraped, failed, frontier int32) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	return j.pagesScraped, j.pagesFailed, int32(len(j.frontier))
+	return j.pagesScraped, j.pagesFailed, int32(j.frontier.Len())
 }

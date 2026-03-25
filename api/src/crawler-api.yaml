@@ -15,7 +15,11 @@ info:
     События публикуются по мере обхода. Тип определяется по полю `type`.
 
     Гарантированный порядок для одной задачи:
-    `task.completed | task.failed`
+    `page.batch* → (task.completed | task.failed)`
+
+    `page.batch` может приходить несколько раз; каждый батч независим и
+    может индексироваться без ожидания `task.completed`.
+    `task.completed` — сигнал «батчей больше не будет», pages в нём отсутствуют.
 
 paths:
   /crawler-stub:
@@ -150,9 +154,12 @@ components:
         timestamp:
           type: string
           format: date-time
-        pages: # task.completed — все страницы задачи
+        batch_seq: # page.batch — порядковый номер батча, начиная с 1
+          type: integer
+          description: Порядковый номер батча (только для page.batch)
+        pages: # page.batch — страницы текущего батча
           type: array
-          description: Все успешно обработанные страницы задачи
+          description: Страницы текущего батча (только для page.batch)
           items:
             $ref: "./parser-api.yaml#/components/schemas/ScrappedPage"
         completion_reason: # task.completed
@@ -227,6 +234,7 @@ components:
     CrawlEventType:
       type: string
       enum:
+        - page.batch
         - task.completed
         - task.failed
 
