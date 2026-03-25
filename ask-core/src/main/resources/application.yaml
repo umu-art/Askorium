@@ -6,6 +6,8 @@ askorium:
   scrapper:
     scrapper-request-queue-name: askorium.crawler.input
     scrapper-response-queue-name: askorium.crawler.output
+    min-block-length: 100
+    max-block-length: 1000
 
   index:
     text-index-name: askorium-texts
@@ -98,7 +100,7 @@ spring:
       add-mappings: false
 
 opensearch:
-  uris: ${ELASTICSEARCH_URL:https://admin:wsbNU_%23d93nf@localhost:9200}
+  uris: ${ELASTICSEARCH_URL:http://localhost:9200}
 
 server:
   servlet:
@@ -124,3 +126,4 @@ management:
 logging:
   level:
     ru.askorium: trace
+    ru.askorium.core.common.RestTemplateFactory: info

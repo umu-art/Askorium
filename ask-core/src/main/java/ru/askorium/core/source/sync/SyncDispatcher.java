@@ -6,6 +6,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.askorium.api.model.CrawlOptions;
 import ru.askorium.api.model.CrawlTaskRequest;
 import ru.askorium.api.model.SourceSyncRequest;
 import ru.askorium.core.exception.EntityNotFoundException;
@@ -49,7 +50,10 @@ public class SyncDispatcher {
     private void sendToCrawler(UUID id, String sourceUrl) {
         var request = new CrawlTaskRequest()
                 .taskId(id)
-                .domain(sourceUrl);
+                .domain(sourceUrl)
+                .options(new CrawlOptions()
+                        .maxPages(100000)
+                        .maxDepth(100));
 
         rabbitTemplate.convertAndSend(scrapperTasksProperties.getScrapperRequestQueueName(), request);
         log.debug("Sent crawl task {} to queue for source {}", id, sourceUrl);
@@ -57,6 +61,8 @@ public class SyncDispatcher {
 
     @Transactional(transactionManager = "sourcesTransactionManager")
     public void markFailed(UUID taskId, String message) {
+        log.debug("markFailed {}: {}", taskId, message);
+
         var task = syncTaskJpa.findById(taskId)
                 .orElseThrow(() -> new EntityNotFoundException("Task", taskId));
 
@@ -73,6 +79,8 @@ public class SyncDispatcher {
 
     @Transactional(transactionManager = "sourcesTransactionManager")
     public void markCompleted(UUID taskId) {
+        log.debug("markCompleted {}", taskId);
+
         var task = syncTaskJpa.findById(taskId)
                 .orElseThrow(() -> new EntityNotFoundException("Task", taskId));
 

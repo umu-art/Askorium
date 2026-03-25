@@ -4,8 +4,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import ru.askorium.core.search.domain.PageBlockEntity;
 
+import java.util.List;
 import java.util.UUID;
 
 @Repository
 public interface PageBlockJpa extends JpaRepository<PageBlockEntity, UUID> {
+    List<PageBlockEntity> findAllByPage_Id(UUID pageId);
 }

@@ -12,6 +12,7 @@ import ru.askorium.core.source.jpa.SourceJpa;
 import ru.askorium.core.common.UrlUtils;
 import ru.askorium.core.source.mapper.SourceMapper;
 import ru.askorium.core.source.sync.AutoSyncManager;
+import ru.askorium.core.source.sync.IndexSyncService;
 import ru.askorium.core.source.sync.SyncDispatcher;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class SourceController implements SourceApi {
 
     private final SyncDispatcher syncDispatcher;
     private final AutoSyncManager autoSyncManager;
+    private final IndexSyncService indexSyncService;
     private final SourceJpa sourceJpa;
     private final SourceMapper sourceMapper;
 
@@ -68,6 +70,12 @@ public class SourceController implements SourceApi {
     @Override
     public ResponseEntity<Void> autoSyncSource() {
         autoSyncManager.autoSync();
+        return ResponseEntity.ok().build();
+    }
+
+    @Override
+    public ResponseEntity<Void> cleanupIndexes() {
+        indexSyncService.cleanupStaleIndexEntries();
         return ResponseEntity.ok().build();
     }
 

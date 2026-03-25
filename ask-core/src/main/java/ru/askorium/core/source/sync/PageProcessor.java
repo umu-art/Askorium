@@ -4,15 +4,16 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.askorium.api.model.Document;
 import ru.askorium.api.model.Link;
-import ru.askorium.api.model.LinkType;
 import ru.askorium.api.model.ScrappedPage;
 import ru.askorium.core.common.ObjectCompareUtils;
 import ru.askorium.core.common.UrlUtils;
 import ru.askorium.core.exception.BadUrlException;
+import ru.askorium.core.source.config.ScrapperTasksProperties;
 import ru.askorium.core.source.domain.PageEntity;
 import ru.askorium.core.source.jpa.PageJpa;
 import ru.askorium.core.source.mapper.PageMapper;
@@ -35,6 +36,7 @@ public class PageProcessor {
     private final PageJpa pageJpa;
     private final TextProcessingService textProcessingService;
     private final PageMapper pageMapper;
+    private final ScrapperTasksProperties scrapperTasksProperties;
 
     @PersistenceContext(unitName = "sources")
     private EntityManager entityManager;
@@ -42,6 +44,7 @@ public class PageProcessor {
     @Transactional(transactionManager = "sourcesTransactionManager")
     public PageEntity processPage(ScrappedPage page, UUID sourceId, boolean forceSync) {
         normalizePageTexts(page);
+        BlockLenUtils.mergeShortBlocks(page, scrapperTasksProperties);
 
         if (!normalizePageUrl(page)) {
             return null;
@@ -55,12 +58,16 @@ public class PageProcessor {
             page.setBlocks(new ArrayList<>());
         }
 
+        page.getBlocks().removeIf(block -> StringUtils.isBlank(block.getText()));
+
         page.getBlocks().forEach(block ->
                 block.setText(textProcessingService.normalizeText(block.getText())));
 
         var links = Objects.requireNonNullElse(page.getLinks(), new ArrayList<Link>());
         links.forEach(link ->
                 link.setAnchorText(textProcessingService.normalizeText(link.getAnchorText())));
+
+        page.getDocuments().removeIf(document -> StringUtils.isBlank(document.getExtractedText()));
 
         var documents = Objects.requireNonNullElse(page.getDocuments(), new ArrayList<Document>());
         documents.forEach(doc ->
@@ -101,6 +108,8 @@ public class PageProcessor {
     }
 
     private PageEntity savePageDelta(ScrappedPage scrappedPage, UUID sourceId, boolean force) {
+        log.trace("savePageDelta {} for {}", scrappedPage.getUrl(), sourceId);
+
         var url = scrappedPage.getUrl();
         var contentHash = String.valueOf(scrappedPage.hashCode());
 
@@ -175,5 +184,6 @@ public class PageProcessor {
         return (a, b) -> ObjectCompareUtils.equalsObjectsExcludeFields(a, b, "id", "created", "updated", "page");
     }
 
-    public record ScrapeResult(PageEntity savedPage, List<String> newUrls) {}
+    public record ScrapeResult(PageEntity savedPage, List<String> newUrls) {
+    }
 }

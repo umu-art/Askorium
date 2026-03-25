@@ -84,6 +84,16 @@ paths:
         200:
           description: Синхронизация завершена
 
+  /ask/source/cleanup-indexes:
+    post:
+      tags:
+        - source
+      operationId: cleanupIndexes
+      summary: Вычищает устаревшие записи из индексов
+      responses:
+        200:
+          description: Синхронизация завершена
+
 components:
   schemas:
     SourceDto:

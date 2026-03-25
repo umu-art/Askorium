@@ -9,6 +9,7 @@ import ru.askorium.api.model.RerankRequest;
 import ru.askorium.api.model.RerankResult;
 import ru.askorium.core.ask_encoder_api.AskEncoderService;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -19,10 +20,30 @@ public class AskEncoderServiceImpl implements AskEncoderService {
 
     @Override
     public List<List<Float>> generateEmbeddings(List<String> texts) {
-        var request = new EmbeddingRequest()
-                .texts(texts);
+        var result = new ArrayList<List<Float>>();
+        var batch = new ArrayList<String>();
+        int batchSize = 0;
 
-        return encoderApi.generateEmbeddings(request)
+        for (var text : texts) {
+            int textLen = text.length();
+            if (!batch.isEmpty() && batchSize + textLen > 500) {
+                result.addAll(fetchEmbeddings(batch));
+                batch.clear();
+                batchSize = 0;
+            }
+            batch.add(text);
+            batchSize += textLen;
+        }
+
+        if (!batch.isEmpty()) {
+            result.addAll(fetchEmbeddings(batch));
+        }
+
+        return result;
+    }
+
+    private List<List<Float>> fetchEmbeddings(List<String> texts) {
+        return encoderApi.generateEmbeddings(new EmbeddingRequest().texts(texts))
                 .getEmbeddings();
     }
 

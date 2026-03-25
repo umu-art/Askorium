@@ -28,6 +28,10 @@ spec:
             - secretRef:
                 name: ask-crawler
 
+          env:
+            - name: CRAWLER_BATCH_MODE
+              value: true
+
 #          livenessProbe:
 #            httpGet:
 #              path: /

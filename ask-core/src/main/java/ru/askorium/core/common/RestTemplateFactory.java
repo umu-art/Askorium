@@ -51,7 +51,7 @@ public class RestTemplateFactory {
                 response = execution.execute(request, body);
             } catch (IOException ex) {
                 log.error("Request failed. Method: {}, URI: {}, RequestBody: {}",
-                        request.getMethod(), request.getURI(), new String(requestBody, StandardCharsets.UTF_8));
+                        request.getMethod(), request.getURI(), requestBody.length);
                 throw ex;
             }
 
@@ -60,13 +60,13 @@ public class RestTemplateFactory {
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 log.info("Request successful. Status: {}, URI: {}, ResponseBody: {}",
-                        response.getStatusCode(), request.getURI(), buffer.toString(StandardCharsets.UTF_8));
+                        response.getStatusCode(), request.getURI(), buffer.size());
 
                 return response;
             } else {
                 log.warn("Request failed. Status: {}, URI: {}, RequestBody: {}, ResponseBody: {}",
                         response.getStatusCode(), request.getURI(),
-                        new String(requestBody, StandardCharsets.UTF_8), buffer.toString(StandardCharsets.UTF_8));
+                        requestBody.length, buffer.size());
             }
 
             return response;

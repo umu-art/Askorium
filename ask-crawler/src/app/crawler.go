@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	defaultMaxDepth    int32 = 5
-	defaultMaxPages    int32 = 100
+	defaultMaxDepth    int32 = 100
+	defaultMaxPages    int32 = 100000
 	defaultConcurrency int32 = 3
 
 	// inFlightTTL — максимальное время ожидания результата от parser'а.
@@ -110,6 +110,12 @@ func (s *CrawlerService) HandleTask(ctx context.Context, msg []byte) error {
 			concurrency = *req.Options.Concurrency
 		}
 	}
+
+	s.logger.Info("crawler: task options",
+		"max_depth", maxDepth,
+		"max_pages", maxPages,
+		"concurrency", concurrency,
+	)
 
 	var frontier applib.Frontier
 	if s.batchMode {

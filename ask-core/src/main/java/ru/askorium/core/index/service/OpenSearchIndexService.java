@@ -188,6 +188,34 @@ public class OpenSearchIndexService implements IndexService {
         return client.indices().exists(e -> e.index(name)).value();
     }
 
+    @Override
+    public void deleteStaleKeys(List<String> validKeys) {
+        var fieldValues = validKeys.stream().map(FieldValue::of).toList();
+        deleteStaleFromIndex(properties.getTextIndexName(), fieldValues);
+        deleteStaleFromIndex(properties.getVectorIndexName(), fieldValues);
+    }
+
+    private void deleteStaleFromIndex(String indexName, List<FieldValue> validKeyValues) {
+        try {
+            var response = client.deleteByQuery(d -> d
+                    .index(indexName)
+                    .query(q -> q
+                            .bool(b -> b
+                                    .mustNot(mn -> mn
+                                            .terms(t -> t
+                                                    .field("key")
+                                                    .terms(tv -> tv.value(validKeyValues))
+                                            )
+                                    )
+                            )
+                    )
+            );
+            log.info("Deleted {} stale entries from index '{}'", response.deleted(), indexName);
+        } catch (IOException e) {
+            throw new IndexOperationException("Failed to delete stale keys from " + indexName, e);
+        }
+    }
+
     private float scoreOf(Double score) {
         return Objects.requireNonNullElse(score, 0d).floatValue();
     }

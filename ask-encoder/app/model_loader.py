@@ -20,7 +20,7 @@ def get_reranker(settings: Settings) -> CrossEncoder:
     global _reranker
     if _reranker is None:
         log.info("Loading reranker model: %s", settings.reranker_model)
-        _reranker = CrossEncoder(settings.reranker_model)
+        _reranker = CrossEncoder(settings.reranker_model, max_length=512)
     return _reranker
 
 

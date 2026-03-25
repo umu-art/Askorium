@@ -12,4 +12,6 @@ public interface IndexService {
 
     List<IndexVector> searchKnn(IndexVector vector, int size);
 
+    void deleteStaleKeys(List<String> validKeys);
+
 }
