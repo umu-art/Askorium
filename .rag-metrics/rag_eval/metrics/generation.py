@@ -1,6 +1,6 @@
 import logging
+import re
 
-import bert_score
 import config
 from openai import OpenAI
 from rouge_score import rouge_scorer
@@ -12,12 +12,13 @@ _llm_client = OpenAI(
     base_url=config.OPENROUTER_BASE_URL,
 )
 
-_rouge_scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=False)
+
+class CyrillicTokenizer:
+    def tokenize(self, text):
+        return re.split(r'\s+', text.lower().strip())
 
 
-def bert_score_f1(answer: str, ground_truth: str) -> float:
-    _, _, f1 = bert_score.score([answer], [ground_truth], lang="ru", verbose=False)
-    return float(f1[0])
+_rouge_scorer = rouge_scorer.RougeScorer(["rougeL"], tokenizer=CyrillicTokenizer())
 
 
 def rouge_l(answer: str, ground_truth: str) -> float:
@@ -69,7 +70,7 @@ def faithfulness(answer: str, sources: list[str]) -> float:
             temperature=0,
             messages=[{"role": "user", "content": prompt}],
         )
-        value = float(response.choices[0].message.content.strip())
+        value = float(response.choices[0].message.content.splitlines()[0].strip())
         return max(0.0, min(1.0, value))
     except (ValueError, TypeError, IndexError) as e:
         logger.warning("faithfulness parse error: %s", e)

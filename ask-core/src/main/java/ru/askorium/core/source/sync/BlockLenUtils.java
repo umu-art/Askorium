@@ -44,7 +44,14 @@ public class BlockLenUtils {
 
             int start = 0;
             while (start < text.length()) {
-                int end = Math.min(start + maxLength, text.length());
+                int hardEnd = Math.min(start + maxLength, text.length());
+                int end = hardEnd;
+                if (hardEnd < text.length()) {
+                    int sentenceEnd = text.lastIndexOf(". ", hardEnd - 1);
+                    if (sentenceEnd > start) {
+                        end = sentenceEnd + 2;
+                    }
+                }
                 var chunk = new ContentBlock(block.getType(), text.substring(start, end));
                 chunk.setHtmlId(start == 0 ? block.getHtmlId() : null);
                 chunk.setHeadingLevel(block.getHeadingLevel());

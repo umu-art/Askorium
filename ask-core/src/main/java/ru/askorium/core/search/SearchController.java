@@ -10,10 +10,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.util.CollectionUtils;
 import ru.askorium.api.model.SearchCreateRequest;
 import ru.askorium.api.model.SearchCreateResponse;
 import ru.askorium.api.model.SearchGetResponse;
 import ru.askorium.api.model.SearchStatus;
+import ru.askorium.api.model.SourceSnippet;
 import ru.askorium.api.server.SearchApi;
 import ru.askorium.core.exception.EntityNotFoundException;
 import ru.askorium.core.exception.ForbiddenException;
@@ -23,10 +25,12 @@ import ru.askorium.core.search.mapper.SearchMapper;
 import ru.askorium.core.search.workflow.SearchWorkflow;
 
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.Objects.nonNull;
 import static ru.askorium.core.common.UserUtils.getUserId;
 
 @Controller
@@ -90,6 +94,16 @@ public class SearchController implements SearchApi {
             throw new ForbiddenException();
         }
 
-        return ResponseEntity.ok(searchMapper.toGetResponse(query));
+        var dto = searchMapper.toGetResponse(query);
+
+        if (!CollectionUtils.isEmpty(dto.getSources())) {
+            dto.setSources(dto.getSources()
+                    .stream()
+                    .filter(source -> nonNull(source.getScoreFinal()))
+                    .sorted(Comparator.comparing(SourceSnippet::getScoreFinal).reversed())
+                    .toList());
+        }
+
+        return ResponseEntity.ok(dto);
     }
 }

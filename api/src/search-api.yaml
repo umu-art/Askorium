@@ -136,3 +136,6 @@ components:
           type: string
           description: Текст найденного фрагмента, релевантного запросу
           example: "Чтобы подключить OAuth2 в вашем приложении, нужно зарегистрировать его в нашей системе и получить client_id и client_secret..."
+        scoreFinal:
+          type: number
+          format: float

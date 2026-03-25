@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 @ConfigurationProperties(prefix = "askorium.search")
 public class SearchProperties {
 
+    private boolean useFullSource = true;
     private Map<SearchMode, ModeParams> modes = new EnumMap<>(SearchMode.class);
 
     @PostConstruct

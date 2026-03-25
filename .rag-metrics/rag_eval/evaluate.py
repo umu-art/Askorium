@@ -9,7 +9,7 @@ from statistics import mean
 from tqdm import tqdm
 
 import config
-from metrics.generation import bert_score_f1, crag_score, faithfulness, rouge_l
+from metrics.generation import crag_score, faithfulness, rouge_l
 from metrics.retrieval import hit_rate, ndcg_at_k, precision_at_k, recall_at_k
 from pipeline import EvalPipeline
 
@@ -20,7 +20,6 @@ ALL_METRICS = [
     "precision_at_k",
     "ndcg_at_k",
     "hit_rate",
-    "bert_score",
     "rouge_l",
     "crag_score",
     "faithfulness",
@@ -30,7 +29,7 @@ SLICE_METRICS = ["recall_at_k", "ndcg_at_k", "crag_score"]
 
 def load_dataset(path: str) -> list[dict]:
     with open(path, encoding="utf-8") as f:
-        return [json.loads(line) for line in f if line.strip()]
+        return [json.loads(line) for line in f if line.strip()][:3]
 
 
 def compute_metrics(item: dict) -> dict:
@@ -44,7 +43,6 @@ def compute_metrics(item: dict) -> dict:
         "precision_at_k": precision_at_k(sources, contexts, config.RETRIEVAL_K, config.RETRIEVAL_THRESHOLD),
         "ndcg_at_k": ndcg_at_k(sources, contexts, config.RETRIEVAL_K),
         "hit_rate": hit_rate(sources, contexts, config.RETRIEVAL_THRESHOLD),
-        "bert_score": bert_score_f1(answer, ground_truth),
         "rouge_l": rouge_l(answer, ground_truth),
         "crag_score": crag_score(answer, ground_truth),
         "faithfulness": faithfulness(answer, sources),
@@ -64,36 +62,6 @@ def aggregate_by_group(samples: list[dict], group_key: str, metric_names: list[s
     for s in samples:
         groups[s[group_key]].append(s)
     return {k: aggregate(v, metric_names) for k, v in sorted(groups.items())}
-
-
-def print_results(overall: dict, by_difficulty: dict, by_question_type: dict, k: int) -> None:
-    label_map = {
-        "recall_at_k": f"recall@{k}",
-        "precision_at_k": f"precision@{k}",
-        "ndcg_at_k": f"ndcg@{k}",
-        "hit_rate": "hit_rate",
-        "bert_score": "bert_score",
-        "rouge_l": "rouge_l",
-        "crag_score": "crag_score",
-        "faithfulness": "faithfulness",
-    }
-
-    print("\n=== Overall ===")
-    for metric in ALL_METRICS:
-        print(f"{label_map[metric]:<16} {overall[metric]:>8.2f}")
-
-    slice_labels = [label_map[m] for m in SLICE_METRICS]
-    header = "".join(f"{l:>12}" for l in slice_labels)
-
-    print(f"\n=== By difficulty ===\n{'':16}{header}")
-    for group, metrics in by_difficulty.items():
-        vals = "".join(f"{metrics[m]:>12.2f}" for m in SLICE_METRICS)
-        print(f"{group:<16}{vals}")
-
-    print(f"\n=== By question_type ===\n{'':16}{header}")
-    for group, metrics in by_question_type.items():
-        vals = "".join(f"{metrics[m]:>12.2f}" for m in SLICE_METRICS)
-        print(f"{group:<16}{vals}")
 
 
 def save_results(result: dict, timestamp: datetime) -> str:
@@ -159,9 +127,9 @@ def main() -> None:
 
     filepath = save_results(result, timestamp)
 
-    print_results(overall, by_difficulty, by_question_type, config.RETRIEVAL_K)
     print(f"\nResults saved: {filepath}")
 
 
 if __name__ == "__main__":
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     main()

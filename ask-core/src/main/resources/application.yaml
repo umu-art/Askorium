@@ -17,6 +17,7 @@ askorium:
     hnsw-ef-construction: 100
 
   search:
+    use-full-source: true
     modes:
       FAST:
         bm25-size: 50

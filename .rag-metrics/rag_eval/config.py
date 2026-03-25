@@ -6,7 +6,7 @@ load_dotenv()
 # --- RAG API ---
 RAG_BASE_URL: str = os.environ["RAG_BASE_URL"]
 RAG_SOURCE_ID: str = os.environ["RAG_SOURCE_ID"]
-RAG_MODE: str = os.getenv("RAG_MODE", "fast")
+RAG_MODE: str = os.getenv("RAG_MODE", "deep")
 RAG_POLL_INTERVAL: float = float(os.getenv("RAG_POLL_INTERVAL", "1.0"))
 RAG_TIMEOUT: float = float(os.getenv("RAG_TIMEOUT", "60.0"))
 RAG_CONCURRENCY: int = int(os.getenv("RAG_CONCURRENCY", "5"))
