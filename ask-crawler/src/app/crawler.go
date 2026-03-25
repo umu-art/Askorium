@@ -28,25 +28,59 @@ const (
 	inFlightTTL = 5 * time.Minute
 )
 
+// activeCrawl объединяет состояние одной активной задачи: JobState, BatchBuilder
+// и временный аккумулятор страниц (Phase 1 — до появления page.batch события).
+type activeCrawl struct {
+	job     *applib.JobState
+	builder *applib.BatchBuilder
+	mu      sync.Mutex
+	pages   []crawler_model.ScrappedPage // Phase 1: накапливается здесь, отправляется в finishJob
+}
+
+func (ac *activeCrawl) addBatch(pages []crawler_model.ScrappedPage) {
+	ac.mu.Lock()
+	ac.pages = append(ac.pages, pages...)
+	ac.mu.Unlock()
+}
+
+func (ac *activeCrawl) drainPages() []crawler_model.ScrappedPage {
+	ac.mu.Lock()
+	defer ac.mu.Unlock()
+	out := ac.pages
+	ac.pages = nil
+	return out
+}
+
+// CrawlerService управляет активными задачами краулинга.
 type CrawlerService struct {
 	renderPublisher infra_amqp.MessagePublisher
 	eventPublisher  infra_amqp.MessagePublisher
 	logger          *slog.Logger
 
-	jobs   map[string]*applib.JobState
+	filter    applib.URLFilter
+	scorer    applib.LinkScorer
+	batchCfg  applib.BatchConfig
+	batchMode bool // true → стриминг page.batch; false → Phase 1 (всё в task.completed)
+
 	jobsMu sync.Mutex
+	jobs   map[string]*activeCrawl
 }
 
 func NewCrawlerService(
 	renderPublisher infra_amqp.MessagePublisher,
 	eventPublisher infra_amqp.MessagePublisher,
 	logger *slog.Logger,
+	batchMode bool,
 ) *CrawlerService {
 	return &CrawlerService{
 		renderPublisher: renderPublisher,
 		eventPublisher:  eventPublisher,
 		logger:          logger,
-		jobs:            make(map[string]*applib.JobState),
+		filter:          applib.NewDefaultChainFilter(applib.DefaultFilterConfig()),
+		scorer:          applib.DefaultCompositeScorer(),
+		batchCfg:        applib.DefaultBatchConfig(),
+		batchMode:       batchMode,
+		jobs:            make(map[string]*activeCrawl),
 	}
 }
 
@@ -77,21 +111,45 @@ func (s *CrawlerService) HandleTask(ctx context.Context, msg []byte) error {
 		}
 	}
 
-	job := applib.NewJobState(req.TaskId, req.Domain, maxDepth, maxPages, concurrency, req.Metadata)
-
-	if len(req.SeedUrls) > 0 {
-		for _, u := range req.SeedUrls {
-			job.Enqueue(u, 0)
-		}
+	var frontier applib.Frontier
+	if s.batchMode {
+		frontier = applib.NewPriorityFrontier()
 	} else {
-		job.Enqueue(req.Domain, 0)
+		frontier = applib.NewFIFOFrontier()
+	}
+	job := applib.NewJobState(req.TaskId, req.Domain, maxDepth, maxPages, concurrency, req.Metadata, frontier)
+
+	seeds := req.SeedUrls
+	if len(seeds) == 0 {
+		seeds = []string{req.Domain}
+	}
+	for _, u := range seeds {
+		job.Enqueue(applib.URLCandidate{URL: u, Depth: 0})
 	}
 
+	ac := &activeCrawl{job: job}
+	ac.builder = applib.NewBatchBuilder(s.batchCfg, func(pages []crawler_model.ScrappedPage, seq int) {
+		if s.batchMode {
+			// Phase 2: публикуем батч немедленно; используем Background чтобы не
+			// зависеть от контекста HandleTask/WatchBatch.
+			if err := s.publishPageBatch(context.Background(), job.TaskID, pages, seq); err != nil {
+				s.logger.Error("crawler: failed to publish page.batch",
+					"task_id", job.TaskID,
+					"batch_seq", seq,
+					"error", err,
+				)
+			}
+		} else {
+			// Phase 1: аккумулируем, отправим в task.completed.
+			ac.addBatch(pages)
+		}
+	})
+
 	s.jobsMu.Lock()
-	s.jobs[req.TaskId] = job
+	s.jobs[req.TaskId] = ac
 	s.jobsMu.Unlock()
 
-	return s.fillPipeline(ctx, job)
+	return s.fillPipeline(ctx, ac)
 }
 
 func (s *CrawlerService) HandleScrapeResult(ctx context.Context, msg []byte) error {
@@ -106,7 +164,7 @@ func (s *CrawlerService) HandleScrapeResult(ctx context.Context, msg []byte) err
 	)
 
 	s.jobsMu.Lock()
-	job, ok := s.jobs[resp.TaskId]
+	ac, ok := s.jobs[resp.TaskId]
 	s.jobsMu.Unlock()
 
 	if !ok {
@@ -114,27 +172,31 @@ func (s *CrawlerService) HandleScrapeResult(ctx context.Context, msg []byte) err
 		return nil
 	}
 
+	job := ac.job
 	srcURL := extractSrcURL(resp.Metadata)
 	currentDepth := extractDepth(resp.Metadata)
 
 	if resp.Success && resp.Page != nil {
 		sourcePageURL := extractSourcePageURL(resp.Metadata)
 		page := applib.MapPage(*resp.Page, sourcePageURL)
+		job.MarkParsed(srcURL, page)
+		ac.builder.Add(&page)
 		s.enqueueLinks(job, resp.Page.Links, currentDepth)
 		s.enqueueDocuments(job, resp.Page.Documents, resp.Page.Url)
-		job.IncrScraped()
-		job.AddPage(page)
 	} else {
-		job.IncrFailed()
-		s.logger.Warn("crawler: scrape failed", "task_id", resp.TaskId, "error", resp.Error)
+		errMsg := ""
+		if resp.Error != nil {
+			errMsg = resp.Error.Message
+		}
+		job.MarkFailed(srcURL, errMsg)
+		s.logger.Warn("crawler: scrape failed", "task_id", resp.TaskId, "error", errMsg)
 	}
 
-	job.DecrInFlight(srcURL)
-
-	return s.fillPipeline(ctx, job)
+	return s.fillPipeline(ctx, ac)
 }
 
-func (s *CrawlerService) fillPipeline(ctx context.Context, job *applib.JobState) error {
+func (s *CrawlerService) fillPipeline(ctx context.Context, ac *activeCrawl) error {
+	job := ac.job
 	for {
 		if job.InFlightCount() >= job.Concurrency {
 			break
@@ -169,13 +231,13 @@ func (s *CrawlerService) fillPipeline(ctx context.Context, job *applib.JobState)
 		if job.LimitReached() {
 			reason = crawler_model.COMPLETIONREASON_MAX_PAGES_REACHED
 		}
-		return s.finishJob(ctx, job, reason)
+		return s.finishJob(ctx, ac, reason)
 	}
 
 	return nil
 }
 
-func (s *CrawlerService) sendToRenderer(ctx context.Context, job *applib.JobState, entry applib.URLEntry) error {
+func (s *CrawlerService) sendToRenderer(ctx context.Context, job *applib.JobState, entry applib.URLCandidate) error {
 	metadata := map[string]interface{}{
 		"depth":   entry.Depth,
 		"src_url": entry.URL,
@@ -201,7 +263,7 @@ func (s *CrawlerService) sendToRenderer(ctx context.Context, job *applib.JobStat
 		return fmt.Errorf("crawler: publish RenderInput: %w", err)
 	}
 
-	job.IncrInFlight(entry.URL)
+	job.MarkRendering(entry.URL)
 
 	s.logger.Debug("crawler: sent to renderer",
 		"task_id", job.TaskID,
@@ -216,14 +278,51 @@ func (s *CrawlerService) enqueueLinks(job *applib.JobState, links []scrapper_mod
 		if l.Type != scrapper_model.LINKTYPE_INTERNAL {
 			continue
 		}
-		job.Enqueue(l.Href, currentDepth+1)
+		anchorText := ""
+		if l.AnchorText != nil {
+			anchorText = *l.AnchorText
+		}
+		c := applib.URLCandidate{
+			URL:        l.Href,
+			Depth:      currentDepth + 1,
+			AnchorText: anchorText,
+		}
+		if !s.filter.Allow(c) {
+			continue
+		}
+		c.Score = s.scorer.Score(c)
+		job.Enqueue(c)
 	}
 }
 
-func (s *CrawlerService) finishJob(ctx context.Context, job *applib.JobState, reason crawler_model.CompletionReason) error {
+func (s *CrawlerService) enqueueDocuments(job *applib.JobState, docs []scrapper_model.Document, sourcePageURL string) {
+	for _, d := range docs {
+		hint := extensionHint(d.MimeType)
+		if hint == "" {
+			continue
+		}
+		job.Enqueue(applib.URLCandidate{
+			URL:             d.Url,
+			ContentTypeHint: hint,
+			SourcePageURL:   sourcePageURL,
+		})
+	}
+}
+
+func (s *CrawlerService) finishJob(ctx context.Context, ac *activeCrawl, reason crawler_model.CompletionReason) error {
+	job := ac.job
 	scraped, failed, _ := job.Stats()
 	frontier := int32(0)
-	pages := job.Pages()
+
+	// Flush финального батча.
+	// Phase 1: flush складывает в ac.pages → включаем в task.completed.
+	// Phase 2: flush публикует page.batch → task.completed идёт без pages.
+	ac.builder.Flush()
+
+	var pages []crawler_model.ScrappedPage
+	if !s.batchMode {
+		pages = ac.drainPages()
+	}
 
 	event := crawler_model.CrawlEvent{
 		TaskId:           job.TaskID,
@@ -252,8 +351,21 @@ func (s *CrawlerService) finishJob(ctx context.Context, job *applib.JobState, re
 	return nil
 }
 
-// failJob публикует task.failed с описанием ошибки.
-func (s *CrawlerService) failJob(ctx context.Context, job *applib.JobState, code crawler_model.CrawlerErrorCode, message string) error {
+// publishPageBatch публикует промежуточный батч страниц (Phase 2).
+func (s *CrawlerService) publishPageBatch(ctx context.Context, taskID string, pages []crawler_model.ScrappedPage, seq int) error {
+	batchSeq := int32(seq)
+	event := crawler_model.CrawlEvent{
+		TaskId:    taskID,
+		Type:      crawler_model.CRAWLEVENTTYPE_PAGE_BATCH,
+		Timestamp: time.Now().UTC(),
+		BatchSeq:  &batchSeq,
+		Pages:     pages,
+	}
+	return s.publishEvent(ctx, event, fmt.Sprintf("%s.page.batch.%d", taskID, seq))
+}
+
+func (s *CrawlerService) failJob(ctx context.Context, ac *activeCrawl, code crawler_model.CrawlerErrorCode, message string) error {
+	job := ac.job
 	scraped, failed, _ := job.Stats()
 	frontier := int32(0)
 
@@ -305,9 +417,34 @@ func (s *CrawlerService) publishEvent(ctx context.Context, event crawler_model.C
 	return nil
 }
 
+// WatchBatch запускает фоновый goroutine, который раз в секунду вызывает Tick
+// на BatchBuilder всех активных задач — для age-based flush (Phase 2).
+func (s *CrawlerService) WatchBatch(ctx context.Context) {
+	if !s.batchMode {
+		return // в Phase 1 age-based flush не нужен
+	}
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.jobsMu.Lock()
+			crawls := make([]*activeCrawl, 0, len(s.jobs))
+			for _, ac := range s.jobs {
+				crawls = append(crawls, ac)
+			}
+			s.jobsMu.Unlock()
+			for _, ac := range crawls {
+				ac.builder.Tick()
+			}
+		}
+	}
+}
+
 // WatchTTL запускает фоновый goroutine, который периодически проверяет
 // in-flight страницы всех активных задач и снимает зависшие (TTL истёк).
-// Вызывать до broker.Start.
 func (s *CrawlerService) WatchTTL(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -323,39 +460,29 @@ func (s *CrawlerService) WatchTTL(ctx context.Context) {
 
 func (s *CrawlerService) expireInFlight(ctx context.Context) {
 	s.jobsMu.Lock()
-	jobs := make([]*applib.JobState, 0, len(s.jobs))
-	for _, job := range s.jobs {
-		jobs = append(jobs, job)
+	crawls := make([]*activeCrawl, 0, len(s.jobs))
+	for _, ac := range s.jobs {
+		crawls = append(crawls, ac)
 	}
 	s.jobsMu.Unlock()
 
-	for _, job := range jobs {
-		expired := job.ExpireInFlight(inFlightTTL)
+	for _, ac := range crawls {
+		expired := ac.job.ExpireInFlight(inFlightTTL)
 		if len(expired) == 0 {
 			continue
 		}
 		for _, url := range expired {
 			s.logger.Warn("crawler: in-flight TTL expired, counting as failed",
-				"task_id", job.TaskID,
+				"task_id", ac.job.TaskID,
 				"url", url,
 			)
 		}
-		if err := s.fillPipeline(ctx, job); err != nil {
+		if err := s.fillPipeline(ctx, ac); err != nil {
 			s.logger.Error("crawler: fillPipeline after TTL expiry failed",
-				"task_id", job.TaskID,
+				"task_id", ac.job.TaskID,
 				"error", err,
 			)
 		}
-	}
-}
-
-func (s *CrawlerService) enqueueDocuments(job *applib.JobState, docs []scrapper_model.Document, sourcePageURL string) {
-	for _, d := range docs {
-		hint := extensionHint(d.MimeType)
-		if hint == "" {
-			continue
-		}
-		job.EnqueueDocument(d.Url, hint, sourcePageURL)
 	}
 }
 
@@ -374,7 +501,6 @@ func extensionHint(mime string) string {
 	}
 }
 
-// extractSrcURL читает оригинальный URL из metadata сообщения.
 func extractSrcURL(metadata map[string]interface{}) string {
 	if metadata == nil {
 		return ""

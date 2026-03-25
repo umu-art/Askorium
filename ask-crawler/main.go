@@ -40,7 +40,8 @@ func main() {
 		Durable:           true,
 	})
 
-	crawlerService := app.NewCrawlerService(renderPublisher, eventPublisher, logger)
+	batchMode := envOr("CRAWLER_BATCH_MODE", "false") == "true"
+	crawlerService := app.NewCrawlerService(renderPublisher, eventPublisher, logger, batchMode)
 
 	broker.RegisterConsumer(amqpimpl.ConsumerConfig{
 		Queue:   "askorium.crawler.input",
@@ -55,6 +56,7 @@ func main() {
 	}, crawlerService.HandleScrapeResult)
 
 	go crawlerService.WatchTTL(ctx)
+	go crawlerService.WatchBatch(ctx)
 
 	logger.Info("crawler started")
 	if err := broker.Start(ctx); err != nil {
