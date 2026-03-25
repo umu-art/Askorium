@@ -20,7 +20,7 @@ const enhancedBlockSelector = "h1, h2, h3, h4, h5, h6, p, blockquote, pre, dt, d
 var containerTags = []string{"section", "article", "main"}
 
 const shortListItemThreshold = 10 // words — li shorter than this gets merged
-const shortListThreshold = 0.5 // minimum percentage of short li to start merge
+const shortListThreshold = 0.5    // minimum percentage of short li to start merge
 
 type EnhancedDOMBlockSegmenter struct {
 	tableSerializer TableSerializer
@@ -86,7 +86,7 @@ func (s *EnhancedDOMBlockSegmenter) Segment(doc *goquery.Selection, _ string) []
 			}
 		}
 
-		items := list.Find("> li")
+		items := list.Children().Filter("li")
 		if items.Length() == 0 {
 			return
 		}
@@ -99,7 +99,7 @@ func (s *EnhancedDOMBlockSegmenter) Segment(doc *goquery.Selection, _ string) []
 			}
 		})
 
-		if shortListItemCount / listItemCount >= shortListThreshold{
+		if shortListItemCount/listItemCount >= shortListThreshold {
 			// Merge: concatenate all li texts with newline
 			var sb strings.Builder
 			items.Each(func(i int, li *goquery.Selection) {
@@ -164,7 +164,7 @@ func (s *EnhancedDOMBlockSegmenter) Segment(doc *goquery.Selection, _ string) []
 				return
 			}
 		}
-		if node.Find(enhancedBlockSelector + ", li, ul, ol, table").Length() > 0 {
+		if node.Find(enhancedBlockSelector+", li, ul, ol, table").Length() > 0 {
 			return
 		}
 		rawText := directTextContent(rawNode)
@@ -183,7 +183,7 @@ func (s *EnhancedDOMBlockSegmenter) Segment(doc *goquery.Selection, _ string) []
 			if collected[rawNode] {
 				return
 			}
-			if node.Find(enhancedBlockSelector + ", li, ul, ol, div, table").Length() > 0 {
+			if node.Find(enhancedBlockSelector+", li, ul, ol, div, table").Length() > 0 {
 				return
 			}
 			rawText := directTextContent(rawNode)
