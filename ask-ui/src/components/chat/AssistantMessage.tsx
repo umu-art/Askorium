@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useMemo, memo } from 'react'
 import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react'
 import { LogoIcon } from '@/components/icons/LogoIcon'
 import { MarkdownRenderer } from './MarkdownRenderer'
@@ -23,27 +23,32 @@ const INITIAL_COUNT = 3
  * clicking one expands the sources section and highlights the matching card.
  *
  * A small action toolbar (copy + feedback) appears below the answer.
+ *
+ * memo: message objects are immutable after creation — prevents re-renders
+ * of all existing messages when a new message is appended to the list.
  */
-export function AssistantMessage({ message }: AssistantMessageProps) {
+export const AssistantMessage = memo(function AssistantMessage({ message }: AssistantMessageProps) {
   const sources = message.sources ?? []
   const [showAll, setShowAll] = useState(false)
   const [highlighted, setHighlighted] = useState<number | null>(null)
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const hasMore = sources.length > INITIAL_COUNT
-  const visibleSources = showAll ? sources : sources.slice(0, INITIAL_COUNT)
+
+  // useMemo avoids re-slicing the array on every render when showAll hasn't changed
+  const visibleSources = useMemo(
+    () => showAll ? sources : sources.slice(0, INITIAL_COUNT),
+    [sources, showAll],
+  )
 
   const handleCitationClick = useCallback(
     (n: number) => {
-      // Expand if the cited source is currently hidden
       if (n > INITIAL_COUNT) setShowAll(true)
 
-      // Pulse-highlight the card
       if (highlightTimer.current) clearTimeout(highlightTimer.current)
       setHighlighted(n)
       highlightTimer.current = setTimeout(() => setHighlighted(null), 1500)
 
-      // Scroll to card after possible state update
       setTimeout(() => {
         document
           .getElementById(`source-${message.id}-${n}`)
@@ -110,31 +115,38 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
       </div>
     </div>
   )
-}
+})
 
 // ---------------------------------------------------------------------------
 // Action toolbar: copy + feedback
 // ---------------------------------------------------------------------------
 
+type FeedbackRating = 'positive' | 'negative'
+
+// API accepts integer rating 1–5; we map thumbs to the extremes
+const RATING_MAP: Record<FeedbackRating, number> = { positive: 5, negative: 1 }
+
 function MessageActions({ message }: { message: Message }) {
   const [copied, setCopied] = useState(false)
-  const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null)
+  const [feedback, setFeedback] = useState<FeedbackRating | null>(null)
 
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(message.content)
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
-    } catch { /* Clipboard API not available — ignore silently */ }
+    } catch { /* Clipboard API unavailable — ignore silently */ }
   }
 
-  async function handleFeedback(rating: 'positive' | 'negative') {
+  async function handleFeedback(rating: FeedbackRating) {
     if (feedback !== null || !message.queryId) return
-    setFeedback(rating) // optimistic update
+    setFeedback(rating) // optimistic
     try {
-      await feedbackApi.submitFeedback({ feedbackDto: { queryId: message.queryId, rating } })
+      await feedbackApi.submitFeedback({
+        feedbackDto: { queryId: message.queryId, rating: RATING_MAP[rating] },
+      })
     } catch {
-      // Silent failure — feedback is non-critical, don't disturb user
+      // Silent failure — feedback is non-critical, never disturb the user
     }
   }
 
@@ -148,20 +160,13 @@ function MessageActions({ message }: { message: Message }) {
 
   return (
     <div className="mt-2 flex items-center gap-0.5">
-      {/* Copy */}
-      <button
-        type="button"
-        onClick={handleCopy}
-        aria-label="Скопировать ответ"
-        className={actionBtn}
-      >
+      <button type="button" onClick={handleCopy} aria-label="Скопировать ответ" className={actionBtn}>
         {copied
           ? <Check className="h-3.5 w-3.5 text-emerald-500" />
           : <Copy className="h-3.5 w-3.5" />
         }
       </button>
 
-      {/* Feedback — only shown if queryId is present */}
       {message.queryId && (
         <>
           <button

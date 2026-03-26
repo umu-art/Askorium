@@ -1,9 +1,10 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { Message } from '@/types'
-import { SearchMode, SourceDto } from '@/lib/api'
+import { SearchMode, SourceDto, SearchGetResponse } from '@/lib/api'
 import { generateId } from '@/lib/utils'
 import { searchApi, sourceApi, SearchStatus } from '@/lib/api'
 import { useToast } from '@/context/ToastContext'
+import { usePolling } from './usePolling'
 
 const SEARCH_MODE_STORAGE_KEY = 'askorium_search_mode'
 
@@ -75,6 +76,7 @@ const DEV_MOCK_MESSAGES: Message[] = import.meta.env.DEV ? [
 
 export function useChat(): UseChatReturn {
   const toast = useToast()
+  const { poll } = usePolling<SearchGetResponse>(POLL_INTERVAL_MS)
   const [messages, setMessages] = useState<Message[]>(() => {
     // In DEV mode always use mock data so changes to DEV_MOCK_MESSAGES are visible immediately
     if (import.meta.env.DEV) return DEV_MOCK_MESSAGES
@@ -126,7 +128,11 @@ export function useChat(): UseChatReturn {
         searchCreateRequest: { query: content.trim(), mode: searchMode, sourceId },
       })
 
-      const result = await pollSearchResult(queryId)
+      const result = await poll(
+        () => searchApi.getSearchQueryResult({ queryId }),
+        (r) => r.status === SearchStatus.DONE || r.status === SearchStatus.FAILED,
+      )
+      if (result.status === SearchStatus.FAILED) throw new Error('Search failed')
 
       const assistantMessage: Message = {
         id: generateId(),
@@ -170,16 +176,5 @@ export function useChat(): UseChatReturn {
     setSelectedSourceId,
     searchMode,
     setSearchMode,
-  }
-}
-
-async function pollSearchResult(queryId: string) {
-  while (true) {
-    const result = await searchApi.getSearchQueryResult({ queryId })
-
-    if (result.status === SearchStatus.DONE) return result
-    if (result.status === SearchStatus.FAILED) throw new Error('Search failed')
-
-    await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS))
   }
 }
