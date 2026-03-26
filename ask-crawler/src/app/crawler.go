@@ -28,13 +28,12 @@ const (
 	inFlightTTL = 5 * time.Minute
 )
 
-// activeCrawl объединяет состояние одной активной задачи: JobState, BatchBuilder
-// и временный аккумулятор страниц (Phase 1 — до появления page.batch события).
+// activeCrawl объединяет состояние одной активной задачи: JobState и BatchBuilder.
 type activeCrawl struct {
 	job     *applib.JobState
 	builder *applib.BatchBuilder
 	mu      sync.Mutex
-	pages   []crawler_model.ScrappedPage // Phase 1: накапливается здесь, отправляется в finishJob
+	pages   []crawler_model.ScrappedPage // используется если batchMode=false: аккумулируется, отправляется в task.completed
 }
 
 func (ac *activeCrawl) addBatch(pages []crawler_model.ScrappedPage) {
@@ -60,7 +59,7 @@ type CrawlerService struct {
 	filter    applib.URLFilter
 	scorer    applib.LinkScorer
 	batchCfg  applib.BatchConfig
-	batchMode bool // true → стриминг page.batch; false → Phase 1 (всё в task.completed)
+	batchMode bool // true → стриминг page.batch; false → всё в task.completed
 
 	jobsMu sync.Mutex
 	jobs   map[string]*activeCrawl
@@ -136,8 +135,7 @@ func (s *CrawlerService) HandleTask(ctx context.Context, msg []byte) error {
 	ac := &activeCrawl{job: job}
 	ac.builder = applib.NewBatchBuilder(s.batchCfg, func(pages []crawler_model.ScrappedPage, seq int) {
 		if s.batchMode {
-			// Phase 2: публикуем батч немедленно; используем Background чтобы не
-			// зависеть от контекста HandleTask/WatchBatch.
+			// context.Background: flush не зависит от lifetime HandleTask/WatchBatch.
 			if err := s.publishPageBatch(context.Background(), job.TaskID, pages, seq); err != nil {
 				s.logger.Error("crawler: failed to publish page.batch",
 					"task_id", job.TaskID,
@@ -145,8 +143,9 @@ func (s *CrawlerService) HandleTask(ctx context.Context, msg []byte) error {
 					"error", err,
 				)
 			}
+			// PageStatusParsed → PageStatusBatched; иначе IsDone() никогда не вернёт true.
+			ac.job.DrainParsed(len(pages))
 		} else {
-			// Phase 1: аккумулируем, отправим в task.completed.
 			ac.addBatch(pages)
 		}
 	})
@@ -320,9 +319,7 @@ func (s *CrawlerService) finishJob(ctx context.Context, ac *activeCrawl, reason 
 	scraped, failed, _ := job.Stats()
 	frontier := int32(0)
 
-	// Flush финального батча.
-	// Phase 1: flush складывает в ac.pages → включаем в task.completed.
-	// Phase 2: flush публикует page.batch → task.completed идёт без pages.
+	// В batchMode страницы уже ушли раньше; здесь сбрасываем остаток.
 	ac.builder.Flush()
 
 	var pages []crawler_model.ScrappedPage
@@ -423,11 +420,11 @@ func (s *CrawlerService) publishEvent(ctx context.Context, event crawler_model.C
 	return nil
 }
 
-// WatchBatch запускает фоновый goroutine, который раз в секунду вызывает Tick
-// на BatchBuilder всех активных задач — для age-based flush (Phase 2).
+// WatchBatch раз в секунду вызывает Tick на BatchBuilder всех активных задач;
+// после age-based flush перепроверяет завершённость задачи.
 func (s *CrawlerService) WatchBatch(ctx context.Context) {
 	if !s.batchMode {
-		return // в Phase 1 age-based flush не нужен
+		return
 	}
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
@@ -443,7 +440,14 @@ func (s *CrawlerService) WatchBatch(ctx context.Context) {
 			}
 			s.jobsMu.Unlock()
 			for _, ac := range crawls {
-				ac.builder.Tick()
+				if ac.builder.Tick() {
+					if err := s.fillPipeline(context.Background(), ac); err != nil {
+						s.logger.Error("crawler: fillPipeline after batch tick failed",
+							"task_id", ac.job.TaskID,
+							"error", err,
+						)
+					}
+				}
 			}
 		}
 	}

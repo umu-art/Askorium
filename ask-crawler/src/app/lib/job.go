@@ -94,7 +94,6 @@ func (j *JobState) Dequeue() (URLCandidate, bool) {
 	return j.frontier.Pop()
 }
 
-// FrontierLen возвращает текущий размер frontier.
 func (j *JobState) FrontierLen() int {
 	j.mu.Lock()
 	defer j.mu.Unlock()
@@ -108,7 +107,6 @@ func (j *JobState) LimitReached() bool {
 	return j.pagesScraped >= j.MaxPages
 }
 
-// MarkRendering переводит страницу в статус Rendering (отправлена в renderer).
 func (j *JobState) MarkRendering(url string) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
@@ -118,7 +116,6 @@ func (j *JobState) MarkRendering(url string) {
 	}
 }
 
-// MarkParsed записывает результат парсинга и переводит страницу в статус Parsed.
 func (j *JobState) MarkParsed(url string, result crawler_model.ScrappedPage) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
@@ -130,7 +127,6 @@ func (j *JobState) MarkParsed(url string, result crawler_model.ScrappedPage) {
 	}
 }
 
-// MarkFailed переводит страницу в статус Failed.
 func (j *JobState) MarkFailed(url string, reason string) {
 	j.mu.Lock()
 	defer j.mu.Unlock()

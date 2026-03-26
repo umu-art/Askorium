@@ -66,7 +66,6 @@ func NewExtensionFilter() *ExtensionFilter { return &ExtensionFilter{} }
 
 func (f *ExtensionFilter) Allow(c URLCandidate) bool {
 	raw := strings.ToLower(c.URL)
-	// Берём только путь (убираем query/fragment)
 	if idx := strings.IndexAny(raw, "?#"); idx >= 0 {
 		raw = raw[:idx]
 	}
@@ -100,17 +99,13 @@ type TrapFilter struct{}
 func NewTrapFilter() *TrapFilter { return &TrapFilter{} }
 
 func (f *TrapFilter) Allow(c URLCandidate) bool {
-	// CDN служебные пути
 	if cdnCgiRe.MatchString(c.URL) {
 		return false
 	}
-	// Бесконечные календарные пути
 	if calendarTrapRe.MatchString(c.URL) {
 		return false
 	}
-	// Пагинация с номером > 50
 	if m := paginationTrapRe.FindStringSubmatch(c.URL); m != nil {
-		// Если номер страницы числовой и > 50 — trap
 		n := 0
 		for _, ch := range m[1] {
 			n = n*10 + int(ch-'0')
@@ -119,10 +114,9 @@ func (f *TrapFilter) Allow(c URLCandidate) bool {
 			return false
 		}
 	}
-	// Trap query params
 	parsed, err := url.Parse(c.URL)
 	if err != nil {
-		return true // не можем разобрать — пропускаем
+		return true
 	}
 	for key := range parsed.Query() {
 		if trapQueryParams[strings.ToLower(key)] {
