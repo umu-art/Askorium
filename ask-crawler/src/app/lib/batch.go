@@ -81,7 +81,6 @@ func (b *BatchBuilder) Tick() bool {
 }
 
 // Flush принудительно сбрасывает накопленные страницы.
-// Вызывается при завершении задачи.
 func (b *BatchBuilder) Flush() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -97,7 +96,6 @@ func (b *BatchBuilder) Seq() int {
 	return b.seq + 1
 }
 
-// doFlush выполняет сброс; вызывается под мьютексом.
 func (b *BatchBuilder) doFlush() {
 	b.seq++
 	pages := make([]crawler_model.ScrappedPage, len(b.pending))

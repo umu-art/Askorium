@@ -36,7 +36,6 @@ type URLPatternScorer struct{}
 func (URLPatternScorer) Score(c URLCandidate) float64 {
 	raw := strings.ToLower(c.URL)
 
-	// Убираем схему и домен
 	path := raw
 	if idx := strings.Index(raw, "://"); idx >= 0 {
 		rest := raw[idx+3:]
@@ -46,7 +45,6 @@ func (URLPatternScorer) Score(c URLCandidate) float64 {
 			path = "/"
 		}
 	}
-	// Убираем query/fragment
 	if idx := strings.IndexAny(path, "?#"); idx >= 0 {
 		path = path[:idx]
 	}
@@ -150,7 +148,6 @@ func NewCompositeScorer(entries ...weightedScorer) *CompositeScorer {
 }
 
 // DefaultCompositeScorer — 0.5×URL + 0.5×Anchor.
-// LinkContext добавится в Фазе 2, когда парсер начнёт прокидывать тип блока.
 func DefaultCompositeScorer() *CompositeScorer {
 	return NewCompositeScorer(
 		weightedScorer{URLPatternScorer{}, 0.5},

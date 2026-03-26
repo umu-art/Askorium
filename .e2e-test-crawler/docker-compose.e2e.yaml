@@ -25,6 +25,7 @@ services:
       dockerfile: .e2e-test-crawler/Dockerfile.crawler
     environment:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      CRAWLER_BATCH_MODE: true
     networks:
       - askorium_default
     restart: on-failure
