@@ -58,7 +58,7 @@ public class RetrievalActivityImpl extends AbstractQueryActivity implements Retr
         fillScores(sources, bm25Results, knnResults, params.getRrfK());
 
         if (searchProperties.isUseFullSource()) {
-            sources = deduplicateBySource(sources);
+            sources = deduplicateByPage(sources);
         }
 
         sources.forEach(s -> s.setQuery(query));
@@ -110,7 +110,7 @@ public class RetrievalActivityImpl extends AbstractQueryActivity implements Retr
         ).collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private List<QuerySourceEntity> deduplicateBySource(List<QuerySourceEntity> sources) {
+    private List<QuerySourceEntity> deduplicateByPage(List<QuerySourceEntity> sources) {
         var blockSources = sources.stream()
                 .filter(s -> s.getIndexKey().startsWith("block:"))
                 .toList();
@@ -123,16 +123,16 @@ public class RetrievalActivityImpl extends AbstractQueryActivity implements Retr
                 .map(s -> UUID.fromString(s.getIndexKey().substring(6)))
                 .toList();
 
-        var sourceIdByKey = pageBlockJpa.findAllById(blockIds).stream()
+        var pageIdByKey = pageBlockJpa.findAllById(blockIds).stream()
                 .collect(Collectors.toMap(
                         b -> "block:" + b.getId(),
-                        b -> b.getPage().getSourceId()
+                        b -> b.getPage().getId()
                 ));
 
         var deduplicatedBlocks = blockSources.stream()
-                .filter(s -> sourceIdByKey.containsKey(s.getIndexKey()))
+                .filter(s -> pageIdByKey.containsKey(s.getIndexKey()))
                 .collect(Collectors.toMap(
-                        s -> sourceIdByKey.get(s.getIndexKey()),
+                        s -> pageIdByKey.get(s.getIndexKey()),
                         s -> s,
                         (a, b) -> a.getFusionScore() >= b.getFusionScore() ? a : b
                 ))
