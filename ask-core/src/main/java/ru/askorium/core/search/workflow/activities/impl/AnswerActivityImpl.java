@@ -42,7 +42,7 @@ public class AnswerActivityImpl extends AbstractQueryActivity implements AnswerA
             throw new IllegalStateException("Sources are not retrieved");
         }
 
-        var context = contextBuilderService.buildContext(query.getSources());
+        var context = String.join("\n\n", contextBuilderService.buildContext(query.getSources()));
 
         var answer = chatClient.prompt()
                 .user(u -> u.text(promptResource)

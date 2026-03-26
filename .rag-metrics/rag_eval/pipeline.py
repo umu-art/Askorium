@@ -81,12 +81,47 @@ class EvalPipeline:
         logger.warning("Timeout polling query for '%s'", question[:50])
         return empty
 
+    async def fetch_by_id(self, client: httpx.AsyncClient, query_id: str, label: str = "") -> dict:
+        empty = {"answer": "", "sources": []}
+        start = time.monotonic()
+        while time.monotonic() - start < self.timeout:
+            await asyncio.sleep(self.poll_interval)
+            try:
+                resp = await client.get(f"{self.base_url}/ask/query/{query_id}")
+                if resp.status_code == 429:
+                    retry_after = float(resp.headers.get("Retry-After", self.poll_interval))
+                    await asyncio.sleep(retry_after)
+                    continue
+                resp.raise_for_status()
+                data = resp.json()
+            except Exception as e:
+                logger.warning("GET /ask/query/%s failed: %s", query_id, e)
+                return empty
+
+            status = data.get("status")
+            if status == "DONE":
+                return {
+                    "answer": data.get("answer", ""),
+                    "sources": [s["text"] for s in data.get("sources", [])],
+                }
+            if status == "FAILED":
+                logger.warning("Query FAILED for cached id=%s ('%s')", query_id, label[:50])
+                return empty
+
+        logger.warning("Timeout polling cached query id=%s ('%s')", query_id, label[:50])
+        return empty
+
     async def run_dataset(self, dataset: list[dict], concurrency: int) -> list[dict]:
         semaphore = asyncio.Semaphore(concurrency)
 
         async def _process(client: httpx.AsyncClient, item: dict) -> dict:
             async with semaphore:
-                result = await self.run_single(client, item["question"])
+                cached_id = item.pop("_cached_query_id", None)
+                if cached_id:
+                    logger.info("Using cached query_id=%s for '%s'", cached_id, item["question"][:50])
+                    result = await self.fetch_by_id(client, cached_id, item["question"])
+                else:
+                    result = await self.run_single(client, item["question"])
                 item["answer"] = result["answer"]
                 item["sources"] = result["sources"]
                 return item

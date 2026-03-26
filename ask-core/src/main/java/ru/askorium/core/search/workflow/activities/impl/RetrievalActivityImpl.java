@@ -53,9 +53,13 @@ public class RetrievalActivityImpl extends AbstractQueryActivity implements Retr
         var bm25Results = indexService.searchBM25(query.getNormalizedQuery(), params.getBm25Size());
         var knnResults = indexService.searchKnn(new IndexVector(null, query.getQueryVector(), 0f), params.getKnnSize());
 
-        var sources = mapToSources(bm25Results, knnResults);
+        List<QuerySourceEntity> sources = mapToSources(bm25Results, knnResults);
 
         fillScores(sources, bm25Results, knnResults, params.getRrfK());
+
+        if (searchProperties.isUseFullSource()) {
+            sources = deduplicateBySource(sources);
+        }
 
         sources.forEach(s -> s.setQuery(query));
         query.getSources().addAll(sources);
@@ -104,6 +108,39 @@ public class RetrievalActivityImpl extends AbstractQueryActivity implements Retr
                     return entity;
                 })
         ).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private List<QuerySourceEntity> deduplicateBySource(List<QuerySourceEntity> sources) {
+        var blockSources = sources.stream()
+                .filter(s -> s.getIndexKey().startsWith("block:"))
+                .toList();
+
+        var nonBlockSources = sources.stream()
+                .filter(s -> !s.getIndexKey().startsWith("block:"))
+                .toList();
+
+        var blockIds = blockSources.stream()
+                .map(s -> UUID.fromString(s.getIndexKey().substring(6)))
+                .toList();
+
+        var sourceIdByKey = pageBlockJpa.findAllById(blockIds).stream()
+                .collect(Collectors.toMap(
+                        b -> "block:" + b.getId(),
+                        b -> b.getPage().getSourceId()
+                ));
+
+        var deduplicatedBlocks = blockSources.stream()
+                .filter(s -> sourceIdByKey.containsKey(s.getIndexKey()))
+                .collect(Collectors.toMap(
+                        s -> sourceIdByKey.get(s.getIndexKey()),
+                        s -> s,
+                        (a, b) -> a.getFusionScore() >= b.getFusionScore() ? a : b
+                ))
+                .values();
+
+        var result = new ArrayList<>(deduplicatedBlocks);
+        result.addAll(nonBlockSources);
+        return result;
     }
 
     private void fillScores(List<QuerySourceEntity> sources, List<IndexText> bm25Results, List<IndexVector> knnResults, int rrfK) {

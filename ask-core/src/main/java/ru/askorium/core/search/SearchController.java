@@ -18,15 +18,14 @@ import ru.askorium.api.model.SearchStatus;
 import ru.askorium.api.model.SourceSnippet;
 import ru.askorium.api.server.SearchApi;
 import ru.askorium.core.exception.EntityNotFoundException;
-import ru.askorium.core.exception.ForbiddenException;
 import ru.askorium.core.exception.LockedException;
 import ru.askorium.core.search.jpa.QueryJpa;
 import ru.askorium.core.search.mapper.SearchMapper;
+import ru.askorium.core.search.service.ContextBuilderService;
 import ru.askorium.core.search.workflow.SearchWorkflow;
 
 import java.time.OffsetDateTime;
 import java.util.Comparator;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -41,6 +40,7 @@ public class SearchController implements SearchApi {
     private final SearchMapper searchMapper;
     private final WorkflowClient workflowClient;
     private final RedissonClient redissonClient;
+    private final ContextBuilderService contextBuilderService;
 
     @SneakyThrows
     @Override
@@ -90,9 +90,9 @@ public class SearchController implements SearchApi {
         var query = queryJpa.findById(queryId)
                 .orElseThrow(() -> new EntityNotFoundException("Query", queryId));
 
-        if (!Objects.equals(query.getUserId(), getUserId())) {
-            throw new ForbiddenException();
-        }
+//        if (!Objects.equals(query.getUserId(), getUserId())) {
+//            throw new ForbiddenException();
+//        }
 
         var dto = searchMapper.toGetResponse(query);
 
@@ -102,6 +102,17 @@ public class SearchController implements SearchApi {
                     .filter(source -> nonNull(source.getScoreFinal()))
                     .sorted(Comparator.comparing(SourceSnippet::getScoreFinal).reversed())
                     .toList());
+        }
+
+        var context = contextBuilderService.buildContext(query.getSources());
+
+        for (var source : dto.getSources()) {
+            var currenContext = context.stream()
+                    .filter(c -> c.contains("] " + source.getUrl()))
+                    .findFirst()
+                    .orElse("not found");
+
+            source.setText(currenContext);
         }
 
         return ResponseEntity.ok(dto);

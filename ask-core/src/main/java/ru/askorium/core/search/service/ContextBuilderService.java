@@ -5,6 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import ru.askorium.core.search.config.SearchProperties;
 import ru.askorium.core.search.domain.PageBlockEntity;
+import ru.askorium.core.search.domain.PageDocumentEntity;
 import ru.askorium.core.search.domain.QuerySourceEntity;
 import ru.askorium.core.search.jpa.PageBlockJpa;
 import ru.askorium.core.search.jpa.PageDocumentJpa;
@@ -24,7 +25,7 @@ public class ContextBuilderService {
     private final PageDocumentJpa pageDocumentJpa;
     private final SearchProperties searchProperties;
 
-    public String buildContext(List<QuerySourceEntity> sources) {
+    public List<String> buildContext(List<QuerySourceEntity> sources) {
         var seen = new LinkedHashSet<String>();
         var parts = new ArrayList<String>();
         int sourceNum = 1;
@@ -47,7 +48,7 @@ public class ContextBuilderService {
                 if (!seen.add(pageId)) continue;
 
                 var description = pageDocumentJpa.findByUrl(source.getUrl())
-                        .map(doc -> doc.getDescription())
+                        .map(PageDocumentEntity::getDescription)
                         .orElse(null);
 
                 var content = searchProperties.isUseFullSource()
@@ -72,7 +73,7 @@ public class ContextBuilderService {
             }
         }
 
-        return String.join("\n\n", parts);
+        return parts;
     }
 
     private String format(int num, String url, String title, String description, String content) {

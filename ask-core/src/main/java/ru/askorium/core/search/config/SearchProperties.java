@@ -43,5 +43,6 @@ public class SearchProperties {
         private int knnSize = 50;
         private int rrfK = 60;
         private int rerankTopN = 10;
+        private int finalTopN = 5;
     }
 }

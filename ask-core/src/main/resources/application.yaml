@@ -23,12 +23,14 @@ askorium:
         bm25-size: 50
         knn-size: 50
         rrf-k: 60
-        rerank-top-n: 10
+        rerank-top-n: 8
+        final-top-n: 4
       DEEP:
         bm25-size: 100
         knn-size: 100
         rrf-k: 60
-        rerank-top-n: 20
+        rerank-top-n: 16
+        final-top-n: 8
 
   user:
     rate-limit:

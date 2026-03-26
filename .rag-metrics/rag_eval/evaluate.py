@@ -1,4 +1,5 @@
 import asyncio
+import csv
 import json
 import logging
 import os
@@ -27,9 +28,24 @@ ALL_METRICS = [
 SLICE_METRICS = ["recall_at_k", "ndcg_at_k", "crag_score"]
 
 
+def load_query_cache(path: str) -> dict[str, str]:
+    """Load question→query_id mapping from a CSV file (no header, two columns)."""
+    if not path:
+        return {}
+    cache: dict[str, str] = {}
+    with open(path, encoding="utf-8", newline="") as f:
+        for row in csv.reader(f, delimiter=';'):
+            if len(row) >= 2:
+                question, query_id = row[0].strip(), row[1].strip()
+                if question and query_id:
+                    cache[question] = query_id
+    logging.info("Loaded %d cached query IDs from %s", len(cache), path)
+    return cache
+
+
 def load_dataset(path: str) -> list[dict]:
     with open(path, encoding="utf-8") as f:
-        return [json.loads(line) for line in f if line.strip()][:3]
+        return [json.loads(line) for line in f if line.strip()]
 
 
 def compute_metrics(item: dict) -> dict:
@@ -81,6 +97,13 @@ def main() -> None:
     dataset = load_dataset(config.DATASET_PATH)
     logging.info("Loaded %d samples from %s", len(dataset), config.DATASET_PATH)
 
+    query_cache = load_query_cache(config.QUERY_CACHE_CSV)
+    if query_cache:
+        for item in dataset:
+            cached_id = query_cache.get(item["question"])
+            if cached_id:
+                item["_cached_query_id"] = cached_id
+
     pipeline = EvalPipeline(
         base_url=config.RAG_BASE_URL,
         source_id=config.RAG_SOURCE_ID,
@@ -90,8 +113,19 @@ def main() -> None:
     )
     dataset = asyncio.run(pipeline.run_dataset(dataset, config.RAG_CONCURRENCY))
 
+    failed = []
     for item in tqdm(dataset, desc="Computing metrics"):
-        item["metrics"] = compute_metrics(item)
+        try:
+            item["metrics"] = compute_metrics(item)
+        except Exception as exc:
+            logging.warning("Skipping item %r: %s", item.get("question", "?")[:60], exc)
+            failed.append(item)
+
+    for item in failed:
+        dataset.remove(item)
+
+    if failed:
+        logging.warning("Skipped %d/%d items due to errors", len(failed), len(dataset) + len(failed))
 
     per_sample = [
         {
@@ -114,7 +148,7 @@ def main() -> None:
         "meta": {
             "timestamp": timestamp.isoformat(timespec="seconds"),
             "dataset_path": config.DATASET_PATH,
-            "dataset_size": len(dataset),
+            "dataset_size": len(per_sample),
             "judge_model": config.JUDGE_MODEL,
             "rag_mode": config.RAG_MODE,
             "retrieval_k": config.RETRIEVAL_K,

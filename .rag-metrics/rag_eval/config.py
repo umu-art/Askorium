@@ -13,6 +13,7 @@ RAG_CONCURRENCY: int = int(os.getenv("RAG_CONCURRENCY", "5"))
 
 # --- Dataset ---
 DATASET_PATH: str = os.getenv("DATASET_PATH", "dataset.jsonl")
+QUERY_CACHE_CSV: str = os.getenv("QUERY_CACHE_CSV", "")
 
 # --- LLM Judge (OpenRouter) ---
 OPENROUTER_API_KEY: str = os.environ["OPENROUTER_API_KEY"]
