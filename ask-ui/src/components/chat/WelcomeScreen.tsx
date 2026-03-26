@@ -4,6 +4,7 @@ import { ChatInput } from './ChatInput'
 import { Button } from '@/components/ui'
 import { useTheme } from '@/hooks/useTheme'
 import type { SourceDto } from '@/lib/api'
+import { SearchMode } from '@/lib/api'
 import { extractDomain } from '@/lib/utils'
 
 interface WelcomeScreenProps {
@@ -14,6 +15,8 @@ interface WelcomeScreenProps {
   sources: SourceDto[]
   selectedSourceId: string | null
   onSourceChange: (id: string) => void
+  searchMode: SearchMode
+  onSearchModeChange: (mode: SearchMode) => void
 }
 
 const SUGGESTED_QUERIES = [
@@ -37,7 +40,7 @@ const SUGGESTED_QUERIES = [
  * - Single source → static badge showing the domain
  * - Multiple sources → styled <select> for switching between sources
  */
-export function WelcomeScreen({ value, onChange, onSubmit, isLoading, sources, selectedSourceId, onSourceChange }: WelcomeScreenProps) {
+export function WelcomeScreen({ value, onChange, onSubmit, isLoading, sources, selectedSourceId, onSourceChange, searchMode, onSearchModeChange }: WelcomeScreenProps) {
   const { theme, toggleTheme } = useTheme()
   const badgeClass = "rounded-full border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-400"
   const dotClass = "block h-1 w-1 rounded-full bg-blue-500 shrink-0"
@@ -110,6 +113,8 @@ export function WelcomeScreen({ value, onChange, onSubmit, isLoading, sources, s
           onChange={onChange}
           onSubmit={onSubmit}
           isLoading={isLoading}
+          searchMode={searchMode}
+          onSearchModeChange={onSearchModeChange}
           placeholder="Задайте вопрос о ВШЭ..."
           autoFocus
         />

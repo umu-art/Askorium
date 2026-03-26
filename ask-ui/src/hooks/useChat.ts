@@ -1,9 +1,19 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { Message } from '@/types'
-import {SearchMode, SourceDto} from '@/lib/api'
+import { SearchMode, SourceDto } from '@/lib/api'
 import { generateId } from '@/lib/utils'
 import { searchApi, sourceApi, SearchStatus } from '@/lib/api'
 import { useToast } from '@/context/ToastContext'
+
+const SEARCH_MODE_STORAGE_KEY = 'askorium_search_mode'
+
+function loadSearchMode(): SearchMode {
+  try {
+    const stored = localStorage.getItem(SEARCH_MODE_STORAGE_KEY)
+    if (stored === SearchMode.FAST || stored === SearchMode.DEEP) return stored as SearchMode
+  } catch { /* ignore */ }
+  return SearchMode.DEEP
+}
 
 const POLL_INTERVAL_MS = 500
 const MESSAGES_STORAGE_KEY = 'askorium_chat_messages'
@@ -38,6 +48,8 @@ interface UseChatReturn {
   sources: SourceDto[]
   selectedSourceId: string | null
   setSelectedSourceId: (id: string) => void
+  searchMode: SearchMode
+  setSearchMode: (mode: SearchMode) => void
 }
 
 const DEV_MOCK_MESSAGES: Message[] = import.meta.env.DEV ? [
@@ -56,6 +68,7 @@ const DEV_MOCK_MESSAGES: Message[] = import.meta.env.DEV ? [
       { title: 'Стипендия Правительства Российской Федерации', url: 'https://www.hse.ru/studyspravka/stip/gov/', text: '' },
       { title: 'Социальная стипендия для нуждающихся студентов', url: 'https://www.hse.ru/studyspravka/stip/social/', text: '' },
     ],
+    queryId: '00000000-0000-0000-0000-000000000001',
     timestamp: new Date(),
   },
 ] : []
@@ -63,15 +76,20 @@ const DEV_MOCK_MESSAGES: Message[] = import.meta.env.DEV ? [
 export function useChat(): UseChatReturn {
   const toast = useToast()
   const [messages, setMessages] = useState<Message[]>(() => {
-    const stored = loadMessages()
-    // In DEV mode prefer stored messages; fall back to mock if nothing stored yet
-    if (import.meta.env.DEV) return stored.length > 0 ? stored : DEV_MOCK_MESSAGES
-    return stored
+    // In DEV mode always use mock data so changes to DEV_MOCK_MESSAGES are visible immediately
+    if (import.meta.env.DEV) return DEV_MOCK_MESSAGES
+    return loadMessages()
   })
   const [isLoading, setIsLoading] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [sources, setSources] = useState<SourceDto[]>([])
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
+  const [searchMode, setSearchModeState] = useState<SearchMode>(loadSearchMode)
+
+  const setSearchMode = useCallback((mode: SearchMode) => {
+    setSearchModeState(mode)
+    try { localStorage.setItem(SEARCH_MODE_STORAGE_KEY, mode) } catch { /* ignore */ }
+  }, [])
 
   // Persist messages to localStorage on every change
   useEffect(() => { saveMessages(messages) }, [messages])
@@ -105,7 +123,7 @@ export function useChat(): UseChatReturn {
       const sourceId = selectedSourceId ?? crypto.randomUUID()
 
       const { queryId } = await searchApi.createSearchQuery({
-        searchCreateRequest: { query: content.trim(), mode: SearchMode.DEEP, sourceId },
+        searchCreateRequest: { query: content.trim(), mode: searchMode, sourceId },
       })
 
       const result = await pollSearchResult(queryId)
@@ -115,6 +133,7 @@ export function useChat(): UseChatReturn {
         role: 'assistant',
         content: result.answer ?? 'Не удалось получить ответ.',
         sources: result.sources,
+        queryId,
         timestamp: new Date(),
       }
       setMessages(prev => [...prev, assistantMessage])
@@ -130,7 +149,7 @@ export function useChat(): UseChatReturn {
     } finally {
       setIsLoading(false)
     }
-  }, [isLoading, selectedSourceId])
+  }, [isLoading, selectedSourceId, searchMode])
 
   const resetChat = useCallback(() => {
     setMessages([])
@@ -149,6 +168,8 @@ export function useChat(): UseChatReturn {
     sources,
     selectedSourceId,
     setSelectedSourceId,
+    searchMode,
+    setSearchMode,
   }
 }
 

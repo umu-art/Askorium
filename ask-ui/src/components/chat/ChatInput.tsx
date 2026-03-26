@@ -1,5 +1,6 @@
 import { useRef, useEffect, type KeyboardEvent, type FormEvent } from 'react'
-import { ArrowUp } from 'lucide-react'
+import { ArrowUp, Zap, BookOpen } from 'lucide-react'
+import { SearchMode } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
 interface ChatInputProps {
@@ -9,6 +10,8 @@ interface ChatInputProps {
   isLoading: boolean
   placeholder?: string
   autoFocus?: boolean
+  searchMode?: SearchMode
+  onSearchModeChange?: (mode: SearchMode) => void
 }
 
 /**
@@ -19,6 +22,7 @@ interface ChatInputProps {
  * - Enter submits, Shift+Enter inserts a newline (universal chat convention)
  * - Auto-resize via scrollHeight to avoid scrollbars inside the input
  * - The send button is disabled while empty or loading
+ * - Optional search mode toggle (FAST / DEEP) rendered inside the input container
  */
 export function ChatInput({
   value,
@@ -27,6 +31,8 @@ export function ChatInput({
   isLoading,
   placeholder = 'Задайте вопрос...',
   autoFocus = false,
+  searchMode,
+  onSearchModeChange,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const canSubmit = value.trim().length > 0 && !isLoading
@@ -51,6 +57,13 @@ export function ChatInput({
     if (!canSubmit) return
     onSubmit(value.trim())
   }
+
+  const toggleMode = () => {
+    if (!onSearchModeChange || !searchMode) return
+    onSearchModeChange(searchMode === SearchMode.DEEP ? SearchMode.FAST : SearchMode.DEEP)
+  }
+
+  const isFast = searchMode === SearchMode.FAST
 
   return (
     <form onSubmit={handleSubmit} className="w-full">
@@ -80,6 +93,29 @@ export function ChatInput({
           aria-label="Поле ввода запроса"
         />
 
+        {/* Search mode toggle — only rendered when prop is provided */}
+        {searchMode && onSearchModeChange && (
+          <button
+            type="button"
+            onClick={toggleMode}
+            aria-label={isFast ? 'Режим: быстрый. Нажмите для глубокого поиска' : 'Режим: глубокий. Нажмите для быстрого поиска'}
+            aria-pressed={isFast}
+            className={cn(
+              'flex-shrink-0 flex items-center gap-1 rounded-lg px-2 h-7 mb-1',
+              'text-[11px] font-medium transition-colors',
+              isFast
+                ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                : 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-800',
+              'hover:opacity-80',
+            )}
+          >
+            {isFast
+              ? <><Zap className="h-3 w-3" />Быстрый</>
+              : <><BookOpen className="h-3 w-3" />Глубокий</>
+            }
+          </button>
+        )}
+
         <button
           type="submit"
           disabled={!canSubmit}
@@ -89,7 +125,7 @@ export function ChatInput({
             'transition-all duration-150',
             canSubmit
               ? 'bg-brand text-white hover:bg-brand-600 active:bg-brand-700 shadow-sm'
-              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
           )}
           aria-label="Отправить запрос"
         >

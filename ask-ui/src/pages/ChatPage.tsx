@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 import { Header } from '@/components/layout/Header'
 import { ChatMessage } from '@/components/chat/ChatMessage'
 import { ChatInput } from '@/components/chat/ChatInput'
 import { ThinkingIndicator } from '@/components/chat/ThinkingIndicator'
 import { WelcomeScreen } from '@/components/chat/WelcomeScreen'
 import { useChat } from '@/hooks/useChat'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 
 /**
  * Main page component — the single page of the application.
@@ -20,7 +21,7 @@ import { useChat } from '@/hooks/useChat'
  * view whenever messages or isLoading change. Using `behavior: 'smooth'` for UX polish.
  */
 export function ChatPage() {
-  const { messages, isLoading, inputValue, setInputValue, handleSubmit, resetChat, sources, selectedSourceId, setSelectedSourceId } = useChat()
+  const { messages, isLoading, inputValue, setInputValue, handleSubmit, resetChat, sources, selectedSourceId, setSelectedSourceId, searchMode, setSearchMode } = useChat()
   const bottomRef = useRef<HTMLDivElement>(null)
   const hasMessages = messages.length > 0
 
@@ -28,6 +29,12 @@ export function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
+
+  // Ctrl/Cmd+K → new chat (mirrors VS Code / Perplexity convention)
+  const shortcuts = useMemo(() => [
+    { key: 'k', meta: true, action: resetChat },
+  ], [resetChat])
+  useKeyboardShortcuts(shortcuts)
 
   if (!hasMessages) {
     return (
@@ -39,6 +46,8 @@ export function ChatPage() {
         sources={sources}
         selectedSourceId={selectedSourceId}
         onSourceChange={setSelectedSourceId}
+        searchMode={searchMode}
+        onSearchModeChange={setSearchMode}
       />
     )
   }
@@ -74,6 +83,8 @@ export function ChatPage() {
             onChange={setInputValue}
             onSubmit={handleSubmit}
             isLoading={isLoading}
+            searchMode={searchMode}
+            onSearchModeChange={setSearchMode}
           />
         </div>
       </div>

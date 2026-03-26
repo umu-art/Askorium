@@ -5,6 +5,7 @@ export interface Message {
   role: 'user' | 'assistant'
   content: string
   sources?: SourceSnippet[]
+  queryId?: string   // present on assistant messages — used for feedback
   timestamp: Date
 }
 

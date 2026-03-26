@@ -1,8 +1,10 @@
 import { useState, useRef, useCallback } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react'
 import { LogoIcon } from '@/components/icons/LogoIcon'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { SourceCard } from './SourceCard'
+import { feedbackApi } from '@/lib/api'
+import { cn } from '@/lib/utils'
 import type { Message } from '@/types'
 
 interface AssistantMessageProps {
@@ -19,6 +21,8 @@ const INITIAL_COUNT = 3
  *
  * Inline citation badges [N] in the text are rendered by MarkdownRenderer;
  * clicking one expands the sources section and highlights the matching card.
+ *
+ * A small action toolbar (copy + feedback) appears below the answer.
  */
 export function AssistantMessage({ message }: AssistantMessageProps) {
   const sources = message.sources ?? []
@@ -59,6 +63,9 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
       <div className="flex-1 min-w-0">
         {/* Markdown answer with inline citation badges */}
         <MarkdownRenderer content={message.content} onCitationClick={handleCitationClick} />
+
+        {/* Action toolbar: copy + feedback */}
+        <MessageActions message={message} />
 
         {/* Source cards */}
         {sources.length > 0 && (
@@ -101,6 +108,84 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Action toolbar: copy + feedback
+// ---------------------------------------------------------------------------
+
+function MessageActions({ message }: { message: Message }) {
+  const [copied, setCopied] = useState(false)
+  const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null)
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(message.content)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch { /* Clipboard API not available — ignore silently */ }
+  }
+
+  async function handleFeedback(rating: 'positive' | 'negative') {
+    if (feedback !== null || !message.queryId) return
+    setFeedback(rating) // optimistic update
+    try {
+      await feedbackApi.submitFeedback({ feedbackDto: { queryId: message.queryId, rating } })
+    } catch {
+      // Silent failure — feedback is non-critical, don't disturb user
+    }
+  }
+
+  const actionBtn = cn(
+    'flex items-center justify-center rounded-lg p-1.5',
+    'text-gray-300 dark:text-gray-600',
+    'hover:text-gray-500 dark:hover:text-gray-400',
+    'hover:bg-gray-100 dark:hover:bg-gray-800',
+    'transition-colors',
+  )
+
+  return (
+    <div className="mt-2 flex items-center gap-0.5">
+      {/* Copy */}
+      <button
+        type="button"
+        onClick={handleCopy}
+        aria-label="Скопировать ответ"
+        className={actionBtn}
+      >
+        {copied
+          ? <Check className="h-3.5 w-3.5 text-emerald-500" />
+          : <Copy className="h-3.5 w-3.5" />
+        }
+      </button>
+
+      {/* Feedback — only shown if queryId is present */}
+      {message.queryId && (
+        <>
+          <button
+            type="button"
+            onClick={() => handleFeedback('positive')}
+            disabled={feedback !== null}
+            aria-label="Ответ полезен"
+            aria-pressed={feedback === 'positive'}
+            className={cn(actionBtn, feedback === 'positive' && 'text-emerald-500 dark:text-emerald-400')}
+          >
+            <ThumbsUp className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleFeedback('negative')}
+            disabled={feedback !== null}
+            aria-label="Ответ не полезен"
+            aria-pressed={feedback === 'negative'}
+            className={cn(actionBtn, feedback === 'negative' && 'text-red-500 dark:text-red-400')}
+          >
+            <ThumbsDown className="h-3.5 w-3.5" />
+          </button>
+        </>
+      )}
     </div>
   )
 }
