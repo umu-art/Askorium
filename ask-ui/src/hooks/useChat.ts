@@ -18,8 +18,28 @@ interface UseChatReturn {
   setSelectedSourceId: (id: string) => void
 }
 
+const DEV_MOCK_MESSAGES: Message[] = import.meta.env.DEV ? [
+  { id: 'mock-user', role: 'user', content: 'Какие стипендии есть в ВШЭ?', timestamp: new Date() },
+  {
+    id: 'mock-assistant',
+    role: 'assistant',
+    content: `В НИУ ВШЭ действует несколько видов стипендий [1]. Академическая стипендия назначается студентам, успешно сдавшим сессию без задолженностей [2]. Повышенная государственная академическая стипендия (ПГАС) выплачивается за выдающиеся достижения в учёбе, науке или общественной деятельности [3].
+
+Помимо этого, университет выплачивает именные стипендии — например, стипендию Учёного совета ВШЭ и стипендию Правительства РФ [4][5]. Для студентов из малообеспеченных семей предусмотрена государственная социальная стипендия [6].`,
+    sources: [
+      { title: 'Стипендиальное обеспечение студентов ВШЭ', url: 'https://www.hse.ru/studyspravka/stip/' },
+      { title: 'Академическая стипендия — условия назначения', url: 'https://www.hse.ru/studyspravka/stip/acad/' },
+      { title: 'Повышенная государственная академическая стипендия', url: 'https://www.hse.ru/studyspravka/stip/pgas/' },
+      { title: 'Именные стипендии НИУ ВШЭ', url: 'https://www.hse.ru/studyspravka/stip/named/' },
+      { title: 'Стипендия Правительства Российской Федерации', url: 'https://www.hse.ru/studyspravka/stip/gov/' },
+      { title: 'Социальная стипендия для нуждающихся студентов', url: 'https://www.hse.ru/studyspravka/stip/social/' },
+    ],
+    timestamp: new Date(),
+  },
+] : []
+
 export function useChat(): UseChatReturn {
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<Message[]>(DEV_MOCK_MESSAGES)
   const [isLoading, setIsLoading] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [sources, setSources] = useState<SourceDto[]>([])

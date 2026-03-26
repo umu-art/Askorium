@@ -6,6 +6,8 @@ interface SourceCardProps {
   source: SourceSnippet
   index: number
   className?: string
+  highlighted?: boolean
+  id?: string
 }
 
 /**
@@ -15,16 +17,19 @@ interface SourceCardProps {
  * where citations are numbered inline in the text and the cards are listed below.
  * Cards are interactive (hover state) to signal they are clickable.
  */
-export function SourceCard({ source, index, className }: SourceCardProps) {
+export function SourceCard({ source, index, className, highlighted, id }: SourceCardProps) {
   return (
     <a
+      id={id}
       href={source.url}
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        'group flex items-start gap-2.5 rounded-xl border border-gray-100 bg-gray-50 p-3',
-        'transition-all duration-150',
-        'hover:border-brand-200 hover:bg-brand-50',
+        'group flex items-start gap-2.5 rounded-xl border bg-gray-50 p-3',
+        'transition-all duration-200',
+        highlighted
+          ? 'border-brand-400 bg-brand-50 ring-2 ring-brand-200'
+          : 'border-gray-100 hover:border-brand-200 hover:bg-brand-50',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400',
         className
       )}
