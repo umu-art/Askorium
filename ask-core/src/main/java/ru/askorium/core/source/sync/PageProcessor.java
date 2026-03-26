@@ -56,6 +56,8 @@ public class PageProcessor {
     private void normalizePageTexts(ScrappedPage page) {
         if (isNull(page.getBlocks())) {
             page.setBlocks(new ArrayList<>());
+        } else {
+            page.setBlocks(new ArrayList<>(page.getBlocks()));
         }
 
         page.getBlocks().removeIf(block -> StringUtils.isBlank(block.getText()));

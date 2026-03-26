@@ -70,10 +70,10 @@ class PageProcessorIntegrationTest extends AbstractIntegrationTest {
 
         var fromDb = pageJpa.findByUrl(result.getUrl());
         assertThat(fromDb).isPresent();
-        assertThat(fromDb.get().getBlocks()).hasSize(2);
+        assertThat(fromDb.get().getBlocks()).hasSize(1);
         assertThat(fromDb.get().getBlocks())
                 .extracting(PageBlockEntity::getText)
-                .containsExactlyInAnyOrder("Hello", "World");
+                .containsExactlyInAnyOrder("Hello World");
     }
 
     @Test
