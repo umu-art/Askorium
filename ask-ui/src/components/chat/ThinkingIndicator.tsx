@@ -7,11 +7,15 @@ import { LogoIcon } from '@/components/icons/LogoIcon'
  */
 export function ThinkingIndicator() {
   return (
-    <div className="flex items-start gap-3 animate-fade-in">
+    <div
+      className="flex items-start gap-3 animate-fade-in"
+      role="status"
+      aria-label="Ассистент формирует ответ"
+    >
       <div className="flex-shrink-0 mt-0.5">
         <LogoIcon className="h-7 w-7 rounded-lg" />
       </div>
-      <div className="flex h-10 items-center gap-1.5 px-1">
+      <div className="flex h-10 items-center gap-1.5 px-1" aria-hidden="true">
         {[0, 150, 300].map(delay => (
           <span
             key={delay}

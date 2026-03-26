@@ -12,7 +12,7 @@ interface UserMessageProps {
 export function UserMessage({ content }: UserMessageProps) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[75%] rounded-2xl rounded-br-sm bg-brand-50 px-4 py-3 text-sm leading-relaxed text-gray-900 shadow-sm border border-brand-100">
+      <div className="max-w-[75%] rounded-2xl rounded-br-sm bg-brand-50 dark:bg-brand-900/30 px-4 py-3 text-sm leading-relaxed text-gray-900 dark:text-gray-100 shadow-sm border border-brand-100 dark:border-brand-800">
         {content}
       </div>
     </div>

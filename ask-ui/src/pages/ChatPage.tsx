@@ -44,12 +44,17 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-white">
+    <div className="flex h-screen flex-col bg-white dark:bg-gray-900">
       <Header onNewChat={resetChat} />
 
       {/* Scrollable messages area */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
+      <main className="flex-1 overflow-y-auto scrollbar-gutter-stable">
+        <div
+          className="mx-auto max-w-3xl px-4 py-8 space-y-8"
+          role="log"
+          aria-live="polite"
+          aria-label="История переписки"
+        >
           {messages.map(message => (
             <ChatMessage key={message.id} message={message} />
           ))}
@@ -62,7 +67,7 @@ export function ChatPage() {
       </main>
 
       {/* Sticky input at bottom */}
-      <div className="border-t border-gray-100 bg-white/90 backdrop-blur-sm">
+      <div className="border-t border-gray-100 dark:border-gray-800 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
         <div className="mx-auto max-w-3xl px-4 py-3">
           <ChatInput
             value={inputValue}

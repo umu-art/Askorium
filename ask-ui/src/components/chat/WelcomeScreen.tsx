@@ -1,5 +1,8 @@
+import { Moon, Sun } from 'lucide-react'
 import { LogoIcon } from '@/components/icons/LogoIcon'
 import { ChatInput } from './ChatInput'
+import { Button } from '@/components/ui'
+import { useTheme } from '@/hooks/useTheme'
 import type { SourceDto } from '@/lib/api'
 import { extractDomain } from '@/lib/utils'
 
@@ -35,7 +38,8 @@ const SUGGESTED_QUERIES = [
  * - Multiple sources → styled <select> for switching between sources
  */
 export function WelcomeScreen({ value, onChange, onSubmit, isLoading, sources, selectedSourceId, onSourceChange }: WelcomeScreenProps) {
-  const badgeClass = "rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700"
+  const { theme, toggleTheme } = useTheme()
+  const badgeClass = "rounded-full border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-400"
   const dotClass = "block h-1 w-1 rounded-full bg-blue-500 shrink-0"
 
   const sourceBadge = (() => {
@@ -70,21 +74,32 @@ export function WelcomeScreen({ value, onChange, onSubmit, isLoading, sources, s
   })()
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-16">
+    <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-16 bg-white dark:bg-gray-900">
+      {/* Theme toggle — top right corner */}
+      <div className="absolute top-4 right-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Переключить на светлую тему' : 'Переключить на тёмную тему'}
+        >
+          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </Button>
+      </div>
       {/* Logo + wordmark */}
       <div className="mb-6 flex items-center gap-3">
         <LogoIcon className="h-12 w-12 rounded-lg shadow-sm" />
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Askorium</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Askorium</h1>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <p className="text-sm text-gray-500">Умный поиск по сайту</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Умный поиск по сайту</p>
             {sourceBadge}
           </div>
         </div>
       </div>
 
       {/* Headline */}
-      <p className="mb-10 max-w-md text-center text-base text-gray-500 leading-relaxed">
+      <p className="mb-10 max-w-md text-center text-base text-gray-500 dark:text-gray-400 leading-relaxed">
         Задайте вопрос на естественном языке — получите точный ответ&nbsp;со&nbsp;ссылками на источники
       </p>
 
@@ -107,7 +122,7 @@ export function WelcomeScreen({ value, onChange, onSubmit, isLoading, sources, s
             key={query}
             onClick={() => onSubmit(query)}
             disabled={isLoading}
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-600 shadow-sm transition-all hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 active:scale-95 disabled:opacity-40"
+            className="rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 shadow-sm transition-all hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/30 dark:hover:text-brand-400 active:scale-95 disabled:opacity-40"
           >
             {query}
           </button>

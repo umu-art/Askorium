@@ -29,6 +29,7 @@ function processCitations(
         <button
           key={i}
           type="button"
+          aria-label={`Перейти к источнику ${n}`}
           onClick={(e) => {
             e.preventDefault()
             onCitationClick(n)
@@ -37,8 +38,8 @@ function processCitations(
             'inline-flex items-center justify-center',
             'h-[1.6em] min-w-[1.6em] px-[6px]',
             'rounded-md text-[0.72em] font-bold leading-none',
-            'bg-brand-100 text-brand-600',
-            'hover:bg-brand-500 hover:text-white',
+            'bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400',
+            'hover:bg-brand-500 hover:text-white dark:hover:bg-brand-600',
             'transition-colors cursor-pointer mx-px',
             'relative -top-px',
           )}
@@ -68,7 +69,7 @@ export function MarkdownRenderer({ content, className, onCitationClick }: Markdo
   return (
     <div
       className={cn(
-        'prose prose-sm max-w-none',
+        'prose prose-sm max-w-none dark:prose-dark',
         'prose-headings:font-semibold prose-headings:text-gray-900',
         'prose-p:text-gray-800 prose-p:leading-relaxed',
         'prose-a:text-brand-500 prose-a:font-medium prose-a:no-underline hover:prose-a:underline',

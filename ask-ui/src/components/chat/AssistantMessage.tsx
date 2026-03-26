@@ -63,7 +63,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
         {/* Source cards */}
         {sources.length > 0 && (
           <div className="mt-5">
-            <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
               Источники
             </p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -82,7 +82,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
               <button
                 type="button"
                 onClick={() => setShowAll((v) => !v)}
-                className="mt-2 flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600 transition-colors"
+                className="mt-2 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
               >
                 {showAll ? (
                   <>

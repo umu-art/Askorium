@@ -3,8 +3,30 @@ import type { Message } from '@/types'
 import {SearchMode, SourceDto} from '@/lib/api'
 import { generateId } from '@/lib/utils'
 import { searchApi, sourceApi, SearchStatus } from '@/lib/api'
+import { useToast } from '@/context/ToastContext'
 
 const POLL_INTERVAL_MS = 500
+const MESSAGES_STORAGE_KEY = 'askorium_chat_messages'
+
+function loadMessages(): Message[] {
+  try {
+    const raw = localStorage.getItem(MESSAGES_STORAGE_KEY)
+    if (!raw) return []
+    // Stored timestamps are ISO strings — convert back to Date objects
+    const parsed = JSON.parse(raw) as Array<Omit<Message, 'timestamp'> & { timestamp: string }>
+    return parsed.map(m => ({ ...m, timestamp: new Date(m.timestamp) }))
+  } catch {
+    return []
+  }
+}
+
+function saveMessages(messages: Message[]) {
+  try {
+    localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(messages))
+  } catch {
+    // Ignore write errors (e.g. storage quota exceeded in private mode)
+  }
+}
 
 interface UseChatReturn {
   messages: Message[]
@@ -27,36 +49,43 @@ const DEV_MOCK_MESSAGES: Message[] = import.meta.env.DEV ? [
 
 Помимо этого, университет выплачивает именные стипендии — например, стипендию Учёного совета ВШЭ и стипендию Правительства РФ [4][5]. Для студентов из малообеспеченных семей предусмотрена государственная социальная стипендия [6].`,
     sources: [
-      { title: 'Стипендиальное обеспечение студентов ВШЭ', url: 'https://www.hse.ru/studyspravka/stip/' },
-      { title: 'Академическая стипендия — условия назначения', url: 'https://www.hse.ru/studyspravka/stip/acad/' },
-      { title: 'Повышенная государственная академическая стипендия', url: 'https://www.hse.ru/studyspravka/stip/pgas/' },
-      { title: 'Именные стипендии НИУ ВШЭ', url: 'https://www.hse.ru/studyspravka/stip/named/' },
-      { title: 'Стипендия Правительства Российской Федерации', url: 'https://www.hse.ru/studyspravka/stip/gov/' },
-      { title: 'Социальная стипендия для нуждающихся студентов', url: 'https://www.hse.ru/studyspravka/stip/social/' },
+      { title: 'Стипендиальное обеспечение студентов ВШЭ', url: 'https://www.hse.ru/studyspravka/stip/', text: '' },
+      { title: 'Академическая стипендия — условия назначения', url: 'https://www.hse.ru/studyspravka/stip/acad/', text: '' },
+      { title: 'Повышенная государственная академическая стипендия', url: 'https://www.hse.ru/studyspravka/stip/pgas/', text: '' },
+      { title: 'Именные стипендии НИУ ВШЭ', url: 'https://www.hse.ru/studyspravka/stip/named/', text: '' },
+      { title: 'Стипендия Правительства Российской Федерации', url: 'https://www.hse.ru/studyspravka/stip/gov/', text: '' },
+      { title: 'Социальная стипендия для нуждающихся студентов', url: 'https://www.hse.ru/studyspravka/stip/social/', text: '' },
     ],
     timestamp: new Date(),
   },
 ] : []
 
 export function useChat(): UseChatReturn {
-  const [messages, setMessages] = useState<Message[]>(DEV_MOCK_MESSAGES)
+  const toast = useToast()
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const stored = loadMessages()
+    // In DEV mode prefer stored messages; fall back to mock if nothing stored yet
+    if (import.meta.env.DEV) return stored.length > 0 ? stored : DEV_MOCK_MESSAGES
+    return stored
+  })
   const [isLoading, setIsLoading] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [sources, setSources] = useState<SourceDto[]>([])
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
+
+  // Persist messages to localStorage on every change
+  useEffect(() => { saveMessages(messages) }, [messages])
 
   useEffect(() => {
     sourceApi.listSources().then(list => {
       setSources(list)
       if (list.length > 0 && list[0].id) {
         setSelectedSourceId(list[0].id)
-      } else {
-        console.warn('No sources found')
       }
     }).catch(() => {
-      console.warn('Failed to load sources')
+      toast.error('Не удалось загрузить источники')
     })
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = useCallback(async (content: string) => {
     if (!content.trim() || isLoading) return
@@ -90,6 +119,7 @@ export function useChat(): UseChatReturn {
       }
       setMessages(prev => [...prev, assistantMessage])
     } catch {
+      toast.error('Не удалось получить ответ. Попробуйте ещё раз.')
       const errorMessage: Message = {
         id: generateId(),
         role: 'assistant',
@@ -106,6 +136,7 @@ export function useChat(): UseChatReturn {
     setMessages([])
     setInputValue('')
     setIsLoading(false)
+    try { localStorage.removeItem(MESSAGES_STORAGE_KEY) } catch { /* ignore */ }
   }, [])
 
   return {

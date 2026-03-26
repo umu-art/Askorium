@@ -25,27 +25,27 @@ export function SourceCard({ source, index, className, highlighted, id }: Source
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        'group flex items-start gap-2.5 rounded-xl border bg-gray-50 p-3',
+        'group flex items-start gap-2.5 rounded-xl border bg-gray-50 dark:bg-gray-800 p-3',
         'transition-all duration-200',
         highlighted
-          ? 'border-brand-400 bg-brand-50 ring-2 ring-brand-200'
-          : 'border-gray-100 hover:border-brand-200 hover:bg-brand-50',
+          ? 'border-brand-400 bg-brand-50 dark:bg-brand-900/30 ring-2 ring-brand-200 dark:ring-brand-800'
+          : 'border-gray-100 dark:border-gray-700 hover:border-brand-200 hover:bg-brand-50 dark:hover:bg-brand-900/20',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400',
         className
       )}
       aria-label={`Источник ${index}: ${source.title}`}
     >
       {/* Citation number */}
-      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-gray-200 text-[10px] font-bold text-gray-500 transition-colors group-hover:bg-brand-100 group-hover:text-brand-600">
+      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-gray-200 dark:bg-gray-700 text-[10px] font-bold text-gray-500 dark:text-gray-400 transition-colors group-hover:bg-brand-100 group-hover:text-brand-600 dark:group-hover:bg-brand-900/50 dark:group-hover:text-brand-400">
         {index}
       </span>
 
       {/* Title + domain */}
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 text-xs font-medium leading-snug text-gray-700 transition-colors group-hover:text-brand-700">
+        <p className="line-clamp-2 text-xs font-medium leading-snug text-gray-700 dark:text-gray-300 transition-colors group-hover:text-brand-700 dark:group-hover:text-brand-400">
           {source.title}
         </p>
-        <p className="mt-0.5 truncate text-[10px] text-gray-400">{extractDomain(source.url)}</p>
+        <p className="mt-0.5 truncate text-[10px] text-gray-400 dark:text-gray-500">{extractDomain(source.url)}</p>
       </div>
 
       {/* External link icon */}

@@ -4,6 +4,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
@@ -77,6 +78,28 @@ export default {
           css: {
             fontSize: '0.9rem',
             lineHeight: '1.7',
+          },
+        },
+        dark: {
+          css: {
+            color: theme('colors.gray.300'),
+            a: { color: theme('colors.brand.400') },
+            'h1,h2,h3,h4': { color: theme('colors.gray.100'), fontWeight: '600' },
+            strong: { color: theme('colors.gray.100') },
+            li: { color: theme('colors.gray.300') },
+            p: { color: theme('colors.gray.300') },
+            code: {
+              backgroundColor: theme('colors.gray.700'),
+              color: theme('colors.gray.200'),
+            },
+            pre: {
+              backgroundColor: theme('colors.gray.800'),
+              borderColor: theme('colors.gray.700'),
+            },
+            blockquote: {
+              borderLeftColor: theme('colors.brand.700'),
+              color: theme('colors.gray.400'),
+            },
           },
         },
       }),

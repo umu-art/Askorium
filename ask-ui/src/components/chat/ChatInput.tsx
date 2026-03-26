@@ -56,10 +56,10 @@ export function ChatInput({
     <form onSubmit={handleSubmit} className="w-full">
       <div
         className={cn(
-          'relative flex items-end gap-2 bg-white rounded-2xl shadow-sm',
-          'border border-gray-200 px-4 py-2',
+          'relative flex items-end gap-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm',
+          'border border-gray-200 dark:border-gray-700 px-4 py-2',
           'transition-all duration-150',
-          'focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100'
+          'focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100 dark:focus-within:ring-brand-900'
         )}
       >
         <textarea
@@ -73,7 +73,7 @@ export function ChatInput({
           disabled={isLoading}
           className={cn(
             'flex-1 resize-none bg-transparent outline-none',
-            'text-sm text-gray-900 placeholder-gray-400',
+            'text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500',
             'py-2 leading-relaxed max-h-48',
             'disabled:opacity-60'
           )}
@@ -97,7 +97,7 @@ export function ChatInput({
         </button>
       </div>
 
-      <p className="mt-2 text-center text-xs text-gray-400">
+      <p className="mt-2 text-center text-xs text-gray-400 dark:text-gray-500">
         Enter — отправить &nbsp;·&nbsp; Shift + Enter — новая строка
       </p>
     </form>
