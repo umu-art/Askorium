@@ -13,6 +13,7 @@ type DefaultTextPipeline struct {
 	cleaner    BlockCleaner
 	selector   BlockSelector
 	normalizer TextNormalizer
+	merger     BlockMerger
 }
 
 func NewDefaultTextPipeline(
@@ -21,6 +22,7 @@ func NewDefaultTextPipeline(
 	cleaner BlockCleaner,
 	selector BlockSelector,
 	normalizer TextNormalizer,
+	merger BlockMerger,
 ) TextPipeline {
 	return &DefaultTextPipeline{
 		pruner:     pruner,
@@ -28,6 +30,7 @@ func NewDefaultTextPipeline(
 		cleaner:    cleaner,
 		selector:   selector,
 		normalizer: normalizer,
+		merger:     merger,
 	}
 }
 
@@ -37,6 +40,9 @@ func (p *DefaultTextPipeline) Run(doc *goquery.Selection, pageURL string) []scra
 	blocks = p.cleaner.Clean(blocks)
 	blocks = p.selector.Select(blocks)
 	blocks = p.normalizer.Normalize(blocks)
+	if p.merger != nil {
+		blocks = p.merger.Merge(blocks)
+	}
 	return toContentBlocks(blocks)
 }
 

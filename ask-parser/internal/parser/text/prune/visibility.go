@@ -1,25 +1,34 @@
 package prune
 
 import (
-	"github.com/PuerkitoBio/goquery"
 	"strings"
+
+	"github.com/PuerkitoBio/goquery"
 
 	"ask-parser/internal/parser/text"
 )
 
 var _ text.DOMPruner = (*VisibilityPruner)(nil)
 
-// VisibilityPruner is a no-op stub for V1.
-// V2: remove display:none, visibility:hidden, aria-hidden="true" elements.
+// VisibilityPruner removes elements hidden via inline styles, attributes,
+// or ARIA roles. Elements with display:none/visibility:hidden that contain
+// block-level content (p, table, h1-h6, ul, ol) are kept — these are
+// typically accordion/foldable panels whose content is revealed by JS.
 type VisibilityPruner struct{}
 
-var visibilitySelectors = []string{
-	`[aria-hidden="true"]`,
-	`[hidden]`,
+// safeHiddenSelector matches display:none and visibility:hidden — these
+// need the content check before removal.
+var safeHiddenSelectors = []string{
 	`[style*="display:none"]`,
 	`[style*="display: none"]`,
 	`[style*="visibility:hidden"]`,
 	`[style*="visibility: hidden"]`,
+}
+
+// aggressiveSelectors match hiding techniques that never wrap real content.
+var aggressiveSelectors = []string{
+	`[aria-hidden="true"]`,
+	`[hidden]`,
 	`[style*="opacity:0"]`,
 	`[style*="opacity: 0"]`,
 	`[style*="clip:rect(0"]`,
@@ -34,8 +43,32 @@ var visibilitySelectors = []string{
 	`[role="presentation"][aria-hidden]`,
 }
 
+// substantialContentSelector detects content patterns typical of
+// accordion/foldable panels: tables, or multiple block elements.
+const substantialContentSelector = "table"
+
+// minBlockElements is the number of block-level content elements
+// required to consider a display:none container as an accordion panel.
+const minBlockElements = 2
+
+const blockElementSelector = "p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, dl, li"
+
 func (p *VisibilityPruner) Prune(doc *goquery.Selection) {
-	// Static selectors that can be matched directly via CSS
-	combined := strings.Join(visibilitySelectors, ", ")
-	doc.Find(combined).Remove()
+	// Aggressive selectors: always remove.
+	aggressive := strings.Join(aggressiveSelectors, ", ")
+	doc.Find(aggressive).Remove()
+
+	// Safe hidden selectors: only remove if no substantial content inside.
+	// A table always qualifies as substantial. Otherwise, require 3+
+	// block elements — a single <p> (e.g. cookie banner) does not qualify.
+	safe := strings.Join(safeHiddenSelectors, ", ")
+	doc.Find(safe).Each(func(_ int, s *goquery.Selection) {
+		if s.Find(substantialContentSelector).Length() > 0 {
+			return // contains a table — likely data panel
+		}
+		if s.Find(blockElementSelector).Length() >= minBlockElements {
+			return // substantial block content — likely accordion
+		}
+		s.Remove()
+	})
 }

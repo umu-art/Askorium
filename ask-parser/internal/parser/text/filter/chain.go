@@ -9,6 +9,7 @@ import (
 )
 
 var _ text.BlockCleaner = (*ChainBlockCleaner)(nil)
+var _ text.BlockCleaner = (*SequentialCleaner)(nil)
 
 type ChainBlockCleaner struct {
 	filters []text.BlockFilter
@@ -16,6 +17,22 @@ type ChainBlockCleaner struct {
 
 func NewChainBlockCleaner(filters ...text.BlockFilter) text.BlockCleaner {
 	return &ChainBlockCleaner{filters: filters}
+}
+
+// SequentialCleaner applies multiple BlockCleaners in order.
+type SequentialCleaner struct {
+	cleaners []text.BlockCleaner
+}
+
+func NewSequentialCleaner(cleaners ...text.BlockCleaner) text.BlockCleaner {
+	return &SequentialCleaner{cleaners: cleaners}
+}
+
+func (c *SequentialCleaner) Clean(blocks []text.RawBlock) []text.RawBlock {
+	for _, cl := range c.cleaners {
+		blocks = cl.Clean(blocks)
+	}
+	return blocks
 }
 
 func (c *ChainBlockCleaner) Clean(blocks []text.RawBlock) []text.RawBlock {

@@ -14,8 +14,18 @@ import (
 var _ text.BlockSelector = (*ScoredBlockSelector)(nil)
 
 const (
-	DefaultClusterGap    = 2
-	DefaultFloorQuantile = 0.20 // floor = P20 of non-zero scores
+	DefaultClusterGap    = 5
+	DefaultFloorQuantile = 0.15 // base floor = P15 of non-zero scores
+	DefaultMergeDistance = 8    // max gap between clusters to consider merging
+	DefaultMergeMinRatio = 0.3  // gap avg score must be >= floor * this to merge
+	DefaultKeepRatio     = 0.3  // keep clusters with totalScore >= best * this
+
+	// Adaptive floor: on large pages, P15 is too low (noise teasers pull it
+	// down), letting them bridge gaps and form one giant cluster.
+	// effective_quantile = base + slope * min(1, blockCount / scale)
+	adaptiveFloorSlope = 0.10 // max quantile bump
+	adaptiveFloorScale = 50.0 // blocks at which full bump is reached
+
 )
 
 type cluster struct {
@@ -48,17 +58,24 @@ func (s *ScoredBlockSelector) Select(blocks []text.RawBlock) []text.RawBlock {
 
 	floor := s.computeFloor(blocks)
 	clusters := s.findClusters(blocks, floor)
-	best := bestCluster(clusters)
-	out := collectContent(blocks, best)
+	clusters = mergeClusters(clusters, blocks, floor)
+	kept := selectClusters(clusters)
 
 	if slog.Default().Enabled(nil, slog.LevelDebug) {
-		s.logScores(blocks, best, floor)
+		s.logScores(blocks, kept, floor)
 	}
 
-	return out
+	return collectMultiContent(blocks, kept)
 }
 
-// computeFloor takes the P20 of non-zero scores.
+// computeFloor returns the adaptive floor score.
+// Base quantile is floorQuantile (0.15). On pages with many blocks, noise
+// teasers inflate the block count and pull P15 too low, letting them bridge
+// gaps and form one giant cluster. The quantile scales up with block count:
+//
+//	effective = base + adaptiveSlope * min(1.0, nonzeroCount / adaptiveScale)
+//
+// Examples: 10 blocks → ~P17, 50 blocks → P25, 100+ blocks → P25.
 // Non-zero filtering avoids stopword-gated blocks (score=0) from
 // dragging the floor down to zero and making it useless.
 func (s *ScoredBlockSelector) computeFloor(blocks []text.RawBlock) float64 {
@@ -73,7 +90,14 @@ func (s *ScoredBlockSelector) computeFloor(blocks []text.RawBlock) float64 {
 	}
 	sort.Float64s(nonzero)
 
-	idx := int(float64(len(nonzero)) * s.floorQuantile)
+	// Adaptive quantile: raise floor on large pages
+	ratio := float64(len(nonzero)) / adaptiveFloorScale
+	if ratio > 1.0 {
+		ratio = 1.0
+	}
+	quantile := s.floorQuantile + adaptiveFloorSlope*ratio
+
+	idx := int(float64(len(nonzero)) * quantile)
 	if idx >= len(nonzero) {
 		idx = len(nonzero) - 1
 	}
@@ -120,39 +144,97 @@ func (s *ScoredBlockSelector) findClusters(blocks []text.RawBlock, floor float64
 	return clusters
 }
 
-func bestCluster(clusters []cluster) cluster {
-	if len(clusters) == 0 {
-		return cluster{start: -1, end: -1}
+// mergeClusters combines adjacent clusters when the gap between them is small
+// and the gap blocks have reasonable scores (avg >= floor * DefaultMergeMinRatio).
+func mergeClusters(clusters []cluster, blocks []text.RawBlock, floor float64) []cluster {
+	if len(clusters) <= 1 {
+		return clusters
 	}
-	best := clusters[0]
-	for _, c := range clusters[1:] {
-		if c.totalScore > best.totalScore {
-			best = c
+
+	minGapScore := floor * DefaultMergeMinRatio
+	merged := []cluster{clusters[0]}
+
+	for _, next := range clusters[1:] {
+		prev := &merged[len(merged)-1]
+		gapLen := next.start - prev.end - 1
+
+		if gapLen <= DefaultMergeDistance {
+			// Compute average score of gap blocks
+			gapScore := 0.0
+			for g := prev.end + 1; g < next.start; g++ {
+				gapScore += blocks[g].Score
+			}
+			gapAvg := 0.0
+			if gapLen > 0 {
+				gapAvg = gapScore / float64(gapLen)
+			}
+
+			if gapAvg >= minGapScore || gapLen == 0 {
+				// Merge: extend prev to cover gap + next
+				prev.end = next.end
+				prev.totalScore += gapScore + next.totalScore
+				continue
+			}
 		}
+		merged = append(merged, next)
 	}
-	return best
+
+	return merged
 }
 
-// collectContent extracts the best cluster's blocks, expanding backward
-// to include headings that immediately precede the cluster.
-func collectContent(blocks []text.RawBlock, best cluster) []text.RawBlock {
-	if best.start < 0 {
+// selectClusters keeps all clusters whose totalScore is at least
+// DefaultKeepRatio of the best cluster's score.
+func selectClusters(clusters []cluster) []cluster {
+	if len(clusters) == 0 {
 		return nil
 	}
 
-	start := best.start
-	for start > 0 && blocks[start-1].Type == scrappermodel.CONTENTBLOCKTYPE_HEADING {
-		start--
+	bestScore := 0.0
+	for _, c := range clusters {
+		if c.totalScore > bestScore {
+			bestScore = c.totalScore
+		}
 	}
 
-	out := make([]text.RawBlock, 0, best.end-start+1)
-	for i := start; i <= best.end; i++ {
-		out = append(out, blocks[i])
+	threshold := bestScore * DefaultKeepRatio
+	var kept []cluster
+	for _, c := range clusters {
+		if c.totalScore >= threshold {
+			kept = append(kept, c)
+		}
+	}
+	return kept
+}
+
+// collectMultiContent extracts blocks from all kept clusters, expanding backward
+// to include headings that immediately precede each cluster.
+func collectMultiContent(blocks []text.RawBlock, kept []cluster) []text.RawBlock {
+	if len(kept) == 0 {
+		return nil
+	}
+
+	// Build a set of included block indices
+	include := make([]bool, len(blocks))
+	for _, c := range kept {
+		start := c.start
+		for start > 0 && blocks[start-1].Type == scrappermodel.CONTENTBLOCKTYPE_HEADING {
+			start--
+		}
+		for i := start; i <= c.end; i++ {
+			include[i] = true
+		}
+	}
+
+	var out []text.RawBlock
+	for i, b := range blocks {
+		if include[i] {
+			out = append(out, b)
+		}
 	}
 	return out
 }
 
-func (s *ScoredBlockSelector) logScores(blocks []text.RawBlock, best cluster, floor float64) {
+func (s *ScoredBlockSelector) logScores(blocks []text.RawBlock, kept []cluster, floor float64) {
 	maxScore := 0.0
 	for _, b := range blocks {
 		if b.Score > maxScore {
@@ -163,15 +245,31 @@ func (s *ScoredBlockSelector) logScores(blocks []text.RawBlock, best cluster, fl
 		maxScore = 1
 	}
 
+	// Build include set for KEEP status (same logic as collectMultiContent)
+	include := make([]bool, len(blocks))
+	headingExpanded := make([]bool, len(blocks))
+	for _, c := range kept {
+		start := c.start
+		for start > 0 && blocks[start-1].Type == scrappermodel.CONTENTBLOCKTYPE_HEADING {
+			start--
+		}
+		for i := start; i <= c.end; i++ {
+			include[i] = true
+			if i < c.start {
+				headingExpanded[i] = true
+			}
+		}
+	}
+
 	const barWidth = 30
 
-	slog.Debug(fmt.Sprintf("--- Block Scores (floor=%.2f, gap=%d, cluster=[%d..%d]) ---",
-		floor, s.maxGap, best.start, best.end))
-
-	keptStart := best.start
-	for keptStart > 0 && blocks[keptStart-1].Type == scrappermodel.CONTENTBLOCKTYPE_HEADING {
-		keptStart--
+	// Format cluster ranges for header
+	var clusterStrs []string
+	for _, c := range kept {
+		clusterStrs = append(clusterStrs, fmt.Sprintf("[%d..%d]", c.start, c.end))
 	}
+	slog.Debug(fmt.Sprintf("--- Block Scores (floor=%.2f, gap=%d, clusters=%s) ---",
+		floor, s.maxGap, strings.Join(clusterStrs, " ")))
 
 	for i, b := range blocks {
 		preview := strings.ReplaceAll(b.Text, "\n", " ")
@@ -180,14 +278,12 @@ func (s *ScoredBlockSelector) logScores(blocks []text.RawBlock, best cluster, fl
 		}
 
 		barLen := int((b.Score / maxScore) * barWidth)
-		if barLen < 0 {
-			barLen = 0
-		}
+		barLen = max(barLen, 0)
 		bar := strings.Repeat("█", barLen) + strings.Repeat("░", barWidth-barLen)
 
 		status := "CUT"
-		if i >= keptStart && i <= best.end {
-			if i < best.start {
+		if include[i] {
+			if headingExpanded[i] {
 				status = "KEEP(h)"
 			} else {
 				status = "KEEP"

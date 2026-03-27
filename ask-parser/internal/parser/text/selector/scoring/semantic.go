@@ -43,7 +43,7 @@ var (
 // SemanticMarkupStrategy scores blocks based on DOM signals that survive pruning:
 //   - Ancestor boost tags (article, main, section) — pruner doesn't touch these
 //   - HTMLId attribute pattern matching (Readability.js heuristic)
-//   - Document position (first 5% and last 15% penalized)
+//   - Document position (last 15% penalized as footer boilerplate)
 type SemanticMarkupStrategy struct{}
 
 func NewSemanticMarkupStrategy() *SemanticMarkupStrategy {
@@ -90,12 +90,13 @@ func scoreHTMLId(htmlId string) float64 {
 	return 0
 }
 
-// scorePosition penalizes blocks in the first 5% and last 15% of the document.
-// These regions disproportionately contain boilerplate (headers, footers, copyright).
+// scorePosition penalizes blocks in the last 15% of the document (footer boilerplate).
 // Note: SemanticNoisePruner removes nav/header/footer elements, but many sites
 // use generic divs without semantic tags — position catches those.
+// The first-N% penalty was removed because content-heavy pages (FAQ, lists) often
+// start with legitimate content that was being incorrectly penalized.
 func scorePosition(pos float64) float64 {
-	if pos < 0.05 || pos > 0.85 {
+	if pos > 0.85 {
 		return positionPenalty
 	}
 	return 0

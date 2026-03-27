@@ -14,6 +14,7 @@ import (
 	"ask-parser/internal/parser/extract"
 	"ask-parser/internal/parser/text"
 	"ask-parser/internal/parser/text/filter"
+	"ask-parser/internal/parser/text/merge"
 	"ask-parser/internal/parser/text/normalize"
 	"ask-parser/internal/parser/text/prune"
 	"ask-parser/internal/parser/text/segment"
@@ -29,17 +30,22 @@ type GlobalPipeline struct {
 func NewParser() Parser {
 	textPipeline := text.NewDefaultTextPipeline(
 		prune.NewChainPruner(
+			&prune.ShadowDOMUnwrapPruner{}, // must run first: makes shadow-root content visible
 			&prune.TagPruner{},
 			&prune.SemanticNoisePruner{},
 			&prune.VisibilityPruner{},
 			&prune.BoilerplateClassPruner{},
 		),
 		segment.NewEnhancedDOMBlockSegmenter(&segment.CompactTableSerializer{}),
-		filter.NewChainBlockCleaner(
-			filter.NewMinCharLengthFilter(filter.DefaultMinCharLength),
-			filter.NewMaxLinkDensityFilter(filter.DefaultMaxLinkDensity),
-			filter.NewMinWordCountFilter(filter.DefaultMinWordCount),
-			filter.NewBoilerplateContextFilter(),
+		filter.NewSequentialCleaner(
+			&filter.TailSectionTruncator{}, // truncate noise sections before per-block filters
+			filter.NewChainBlockCleaner(
+				filter.NewMinCharLengthFilter(filter.DefaultMinCharLength),
+				filter.NewMaxLinkDensityFilter(filter.DefaultMaxLinkDensity),
+				filter.NewMinWordCountFilter(filter.DefaultMinWordCount),
+				filter.NewBoilerplateContextFilter(),
+				&filter.TailNoiseFilter{},
+			),
 		),
 		selector.NewScoredBlockSelector(
 			selector.DefaultClusterGap,
@@ -52,6 +58,14 @@ func NewParser() Parser {
 			&normalize.TrimTransform{},
 			&normalize.ValidUTF8Transform{},
 			&normalize.ControlCharStripTransform{},
+		),
+		merge.NewChainBlockMerger(
+			merge.DefaultMergeConfig(),
+			merge.ListCoalesceRule{},
+			merge.SiblingMergeRule{}, // before heading absorption — uses headings as boundaries
+			merge.HeadingAbsorptionRule{},
+			merge.QAPairingRule{},
+			merge.ShortBlockMergeRule{},
 		),
 	)
 
@@ -72,19 +86,42 @@ func NewParser() Parser {
 func NewDocumentParser() Parser {
 	textPipeline := text.NewDefaultTextPipeline(
 		prune.NewChainPruner(
+			&prune.ShadowDOMUnwrapPruner{}, // must run first: makes shadow-root content visible
 			&prune.TagPruner{},
+			&prune.SemanticNoisePruner{},
 			&prune.VisibilityPruner{},
+			&prune.BoilerplateClassPruner{},
 		),
-		segment.NewDOMBlockSegmenter(),
-		filter.NewChainBlockCleaner(
-			filter.NewMinCharLengthFilter(filter.DefaultMinCharLength),
+		segment.NewEnhancedDOMBlockSegmenter(&segment.CompactTableSerializer{}),
+		filter.NewSequentialCleaner(
+			&filter.TailSectionTruncator{},
+			filter.NewChainBlockCleaner(
+				filter.NewMinCharLengthFilter(filter.DefaultMinCharLength),
+				filter.NewMaxLinkDensityFilter(filter.DefaultMaxLinkDensity),
+				filter.NewMinWordCountFilter(filter.DefaultMinWordCount),
+				filter.NewBoilerplateContextFilter(),
+				&filter.TailNoiseFilter{},
+			),
 		),
-		&selector.PassThroughSelector{},
+		selector.NewScoredBlockSelector(
+			selector.DefaultClusterGap,
+			scoring.NewSemanticMarkupStrategy(),
+			scoring.NewReadabilityScoringStrategy(),
+			scoring.NewTextDensityStrategy(),
+		),
 		normalize.NewChainTextNormalizer(
 			&normalize.WhitespaceCollapseTransform{},
 			&normalize.TrimTransform{},
 			&normalize.ValidUTF8Transform{},
 			&normalize.ControlCharStripTransform{},
+		),
+		merge.NewChainBlockMerger(
+			merge.DefaultMergeConfig(),
+			merge.ListCoalesceRule{},
+			merge.SiblingMergeRule{}, // before heading absorption — uses headings as boundaries
+			merge.HeadingAbsorptionRule{},
+			merge.QAPairingRule{},
+			merge.ShortBlockMergeRule{},
 		),
 	)
 
