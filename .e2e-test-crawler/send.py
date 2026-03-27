@@ -3,10 +3,10 @@ import pika, json, uuid, os
 # Домен и стартовые URL для обхода
 TASKS = [
     {
-        "domain": "askorium.ru",
-        "seed_urls": ["https://askorium.ru/"],
-        "max_pages": 1000,
-        "max_depth": 100,
+        "domain": "hse.ru",
+        "seed_urls": ["https://hse.ru/"],
+        "max_pages": 20,
+        "max_depth": 5,
     },
 ]
 

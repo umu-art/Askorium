@@ -8,8 +8,10 @@ import (
 	"syscall"
 
 	"ask-crawler/src/app"
+	applib "ask-crawler/src/app/lib"
 	infra_amqp "ask-crawler/src/infra/amqp"
 	amqpimpl "ask-crawler/src/infra/amqp/impl"
+	redisinfra "ask-crawler/src/infra/redis"
 )
 
 func main() {
@@ -40,8 +42,10 @@ func main() {
 		Durable:           true,
 	})
 
+	factory := buildFrontierFactory(ctx, logger)
+
 	batchMode := envOr("CRAWLER_BATCH_MODE", "false") == "true"
-	crawlerService := app.NewCrawlerService(renderPublisher, eventPublisher, logger, batchMode)
+	crawlerService := app.NewCrawlerService(renderPublisher, eventPublisher, logger, batchMode, factory)
 
 	broker.RegisterConsumer(amqpimpl.ConsumerConfig{
 		Queue:   "askorium.crawler.input",
@@ -65,6 +69,28 @@ func main() {
 	}
 
 	logger.Info("crawler stopped")
+}
+
+// buildFrontierFactory выбирает Redis или in-memory реализацию по REDIS_URL.
+func buildFrontierFactory(ctx context.Context, logger *slog.Logger) applib.FrontierFactory {
+	redisURL := envOr("REDIS_URL", "")
+	if redisURL == "" {
+		logger.Info("frontier: using in-memory store")
+		return applib.NewMemFrontierFactory()
+	}
+
+	rc, err := redisinfra.NewClient(redisURL, logger)
+	if err != nil {
+		logger.Error("frontier: invalid Redis URL, falling back to in-memory", "error", err)
+		return applib.NewMemFrontierFactory()
+	}
+	if err := rc.Ping(ctx); err != nil {
+		logger.Error("frontier: Redis unreachable, falling back to in-memory", "error", err)
+		return applib.NewMemFrontierFactory()
+	}
+
+	logger.Info("frontier: using Redis store", "url", redisURL)
+	return redisinfra.NewFrontierFactory(rc)
 }
 
 func envOr(key, fallback string) string {

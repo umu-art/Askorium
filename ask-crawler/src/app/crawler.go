@@ -60,6 +60,7 @@ type CrawlerService struct {
 	scorer    applib.LinkScorer
 	batchCfg  applib.BatchConfig
 	batchMode bool // true → стриминг page.batch; false → всё в task.completed
+	factory   applib.FrontierFactory
 
 	jobsMu sync.Mutex
 	jobs   map[string]*activeCrawl
@@ -70,6 +71,7 @@ func NewCrawlerService(
 	eventPublisher infra_amqp.MessagePublisher,
 	logger *slog.Logger,
 	batchMode bool,
+	factory applib.FrontierFactory,
 ) *CrawlerService {
 	return &CrawlerService{
 		renderPublisher: renderPublisher,
@@ -79,6 +81,7 @@ func NewCrawlerService(
 		scorer:          applib.DefaultCompositeScorer(),
 		batchCfg:        applib.DefaultBatchConfig(),
 		batchMode:       batchMode,
+		factory:         factory,
 		jobs:            make(map[string]*activeCrawl),
 	}
 }
@@ -116,13 +119,9 @@ func (s *CrawlerService) HandleTask(ctx context.Context, msg []byte) error {
 		"concurrency", concurrency,
 	)
 
-	var frontier applib.Frontier
-	if s.batchMode {
-		frontier = applib.NewPriorityFrontier()
-	} else {
-		frontier = applib.NewFIFOFrontier()
-	}
-	job := applib.NewJobState(req.TaskId, req.Domain, maxDepth, maxPages, concurrency, req.Metadata, frontier)
+	frontier := s.factory.NewFrontier(req.TaskId, s.batchMode)
+	visited := s.factory.NewVisitedStore(req.TaskId)
+	job := applib.NewJobState(req.TaskId, req.Domain, maxDepth, maxPages, concurrency, req.Metadata, frontier, visited)
 
 	seeds := req.SeedUrls
 	if len(seeds) == 0 {
@@ -316,12 +315,18 @@ func (s *CrawlerService) enqueueDocuments(job *applib.JobState, docs []scrapper_
 
 func (s *CrawlerService) finishJob(ctx context.Context, ac *activeCrawl, reason crawler_model.CompletionReason) error {
 	job := ac.job
-	scraped, failed, _ := job.Stats()
-	frontier := int32(0)
 
 	// В batchMode страницы уже ушли раньше; здесь сбрасываем остаток.
 	ac.builder.Flush()
 
+	scraped, failed, _ := job.Stats()
+
+	if scraped == 0 {
+		return s.failJob(ctx, ac, crawler_model.CRAWLERERRORCODE_INTERNAL_ERROR,
+			fmt.Sprintf("no pages scraped (failed=%d)", failed))
+	}
+
+	frontier := int32(0)
 	var pages []crawler_model.ScrappedPage
 	if !s.batchMode {
 		pages = ac.drainPages()
@@ -345,6 +350,7 @@ func (s *CrawlerService) finishJob(ctx context.Context, ac *activeCrawl, reason 
 	}
 
 	s.removeJob(job.TaskID)
+	s.factory.Cleanup(ctx, job.TaskID)
 	s.logger.Info("crawler: task completed",
 		"task_id", job.TaskID,
 		"reason", reason,
@@ -394,6 +400,7 @@ func (s *CrawlerService) failJob(ctx context.Context, ac *activeCrawl, code craw
 	}
 
 	s.removeJob(job.TaskID)
+	s.factory.Cleanup(ctx, job.TaskID)
 	s.logger.Error("crawler: task failed",
 		"task_id", job.TaskID,
 		"code", code,
