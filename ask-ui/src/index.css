@@ -16,11 +16,11 @@
   }
 
   body {
-    @apply bg-white text-gray-900 font-sans;
+    @apply bg-white text-gray-900 font-sans dark:bg-gray-900 dark:text-gray-100;
     margin: 0;
   }
 
-  /* Custom scrollbar — subtle, matches light theme */
+  /* Custom scrollbar — subtle, adapts to theme */
   ::-webkit-scrollbar {
     width: 6px;
   }
@@ -30,15 +30,20 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply rounded-full bg-gray-200;
+    @apply rounded-full bg-gray-200 dark:bg-gray-700;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-300;
+    @apply bg-gray-300 dark:bg-gray-600;
   }
 }
 
 @layer utilities {
+  /* Prevents layout shift when scrollbar appears/disappears */
+  .scrollbar-gutter-stable {
+    scrollbar-gutter: stable;
+  }
+
   /* Utility for clamping text to n lines */
   .line-clamp-2 {
     display: -webkit-box;
