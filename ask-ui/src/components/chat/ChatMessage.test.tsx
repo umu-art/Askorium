@@ -5,7 +5,7 @@ import type { Message } from '@/types'
 
 vi.mock('@/lib/api', () => ({
   feedbackApi: { submitFeedback: vi.fn() },
-  SearchMode: { FAST: 'FAST', DEEP: 'DEEP' },
+  SearchMode: { FAST: 'fast', DEEP: 'deep' },
   SearchStatus: { DONE: 'DONE', FAILED: 'FAILED' },
 }))
 

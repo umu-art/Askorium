@@ -10,7 +10,7 @@ const { mockSubmitFeedback } = vi.hoisted(() => ({
 
 vi.mock('@/lib/api', () => ({
   feedbackApi: { submitFeedback: mockSubmitFeedback },
-  SearchMode: { FAST: 'FAST', DEEP: 'DEEP' },
+  SearchMode: { FAST: 'fast', DEEP: 'deep' },
 }))
 
 const baseMessage: Message = {

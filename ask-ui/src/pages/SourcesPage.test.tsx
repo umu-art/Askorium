@@ -20,7 +20,7 @@ vi.mock('@/lib/api', () => ({
     syncSource: mockSyncSource,
     autoSyncSource: mockAutoSyncSource,
   },
-  SearchMode: { FAST: 'FAST', DEEP: 'DEEP' },
+  SearchMode: { FAST: 'fast', DEEP: 'deep' },
   SearchStatus: { DONE: 'DONE', FAILED: 'FAILED' },
 }))
 

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { ChatInput } from './ChatInput'
 
 vi.mock('@/lib/api', () => ({
-  SearchMode: { FAST: 'FAST', DEEP: 'DEEP' },
+  SearchMode: { FAST: 'fast', DEEP: 'deep' },
 }))
 
 function setup(overrides = {}) {
@@ -69,15 +69,15 @@ describe('ChatInput', () => {
   })
 
   it('renders search mode toggle when provided', () => {
-    setup({ searchMode: 'DEEP', onSearchModeChange: vi.fn() })
+    setup({ searchMode: 'deep', onSearchModeChange: vi.fn() })
     expect(screen.getByRole('button', { name: /режим/i })).toBeInTheDocument()
   })
 
   it('calls onSearchModeChange when mode toggle clicked', async () => {
     const onSearchModeChange = vi.fn()
-    setup({ searchMode: 'DEEP', onSearchModeChange })
+    setup({ searchMode: 'deep', onSearchModeChange })
     await userEvent.click(screen.getByRole('button', { name: /режим/i }))
-    expect(onSearchModeChange).toHaveBeenCalledWith('FAST')
+    expect(onSearchModeChange).toHaveBeenCalledWith('fast')
   })
 
   it('does not render mode toggle when searchMode not provided', () => {

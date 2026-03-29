@@ -15,7 +15,7 @@ vi.mock('@/lib/api', () => ({
   },
   sourceApi: { listSources: mockListSources },
   feedbackApi: { submitFeedback: vi.fn() },
-  SearchMode: { FAST: 'FAST', DEEP: 'DEEP' },
+  SearchMode: { FAST: 'fast', DEEP: 'deep' },
   SearchStatus: { DONE: 'DONE', FAILED: 'FAILED' },
 }))
 
@@ -104,15 +104,15 @@ describe('useChat', () => {
 
   it('setSearchMode persists to localStorage', async () => {
     const { result } = renderHook(() => useChat())
-    act(() => result.current.setSearchMode('FAST' as any))
-    expect(localStorage.getItem(MODE_KEY)).toBe('FAST')
-    expect(result.current.searchMode).toBe('FAST')
+    act(() => result.current.setSearchMode('fast' as any))
+    expect(localStorage.getItem(MODE_KEY)).toBe('fast')
+    expect(result.current.searchMode).toBe('fast')
   })
 
   it('loads searchMode from localStorage', async () => {
-    localStorage.setItem(MODE_KEY, 'FAST')
+    localStorage.setItem(MODE_KEY, 'fast')
     const { result } = renderHook(() => useChat())
-    expect(result.current.searchMode).toBe('FAST')
+    expect(result.current.searchMode).toBe('fast')
   })
 
   it('setInputValue updates inputValue', () => {

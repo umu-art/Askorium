@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { WelcomeScreen } from './WelcomeScreen'
 
 vi.mock('@/lib/api', () => ({
-  SearchMode: { FAST: 'FAST', DEEP: 'DEEP' },
+  SearchMode: { FAST: 'fast', DEEP: 'deep' },
 }))
 
 beforeEach(() => {
@@ -20,7 +20,7 @@ const defaultProps = {
   sources: [],
   selectedSourceId: null,
   onSourceChange: vi.fn(),
-  searchMode: 'DEEP' as const,
+  searchMode: 'deep' as const,
   onSearchModeChange: vi.fn(),
 }
 
