@@ -1,0 +1,161 @@
+{
+  "profiles": {
+    "shallow": { "max_pages": 100,  "max_depth": 2 },
+    "deep":    { "max_pages": 750,  "max_depth": 6 },
+    "full":    { "max_pages": 2000, "max_depth": 10 }
+  },
+
+  "sites": [
+
+    {
+      "_comment": "════════════════════════════════════════════════",
+      "_comment": " ГРУППА A — Российские университеты            ",
+      "_comment": "════════════════════════════════════════════════"
+    },
+
+    {
+      "name": "hse.ru",
+      "domain": "www.hse.ru",
+      "seed_urls": ["https://www.hse.ru/"],
+      "recommended_profiles": ["deep", "full"],
+      "tags": ["ru", "university", "large", "js-light", "pdf-heavy", "pagination-trap"],
+      "site_size_est": "10000+",
+      "js_render_cost": "low",
+      "notes": "Основной сайт ВШЭ. Огромный портал: новости, программы, подразделения. Много PDF (учебные планы, нормативные документы). Пагинация новостей (/news/page/N/) — хороший стресс-тест для TrapFilter. Разнообразная структура разделов даёт интересный граф с несколькими хабами."
+    },
+
+    {
+      "name": "msu.ru",
+      "domain": "www.msu.ru",
+      "seed_urls": ["https://www.msu.ru/"],
+      "recommended_profiles": ["deep", "full"],
+      "tags": ["ru", "university", "large", "static-html", "pdf-heavy", "query-param-trap"],
+      "site_size_est": "5000+",
+      "js_render_cost": "minimal",
+      "notes": "МГУ. Классический университетский портал на PHP. Часть URL содержат query-параметры (?id=, ?p=) — проверка QueryParamFilter. Очень плоская структура разделов, граф будет отличаться от ВШЭ. PDF-программы факультетов."
+    },
+
+    {
+      "name": "spbu.ru",
+      "domain": "spbu.ru",
+      "seed_urls": ["https://spbu.ru/"],
+      "recommended_profiles": ["deep", "full"],
+      "tags": ["ru", "university", "large", "js-light", "pdf-heavy"],
+      "site_size_est": "3000+",
+      "js_render_cost": "low",
+      "notes": "СПбГУ. Хорош как парная пара с hse.ru — похожий масштаб и тематика, другая CMS и топология графа. Позволяет сравнить, как Priority vs FIFO frontier ведут себя на двух сайтах одного класса."
+    },
+
+    {
+      "name": "urfu.ru",
+      "domain": "urfu.ru",
+      "seed_urls": ["https://urfu.ru/ru/"],
+      "recommended_profiles": ["shallow", "deep"],
+      "tags": ["ru", "university", "medium", "js-medium", "pdf-heavy", "multilevel-nav"],
+      "site_size_est": "2000+",
+      "js_render_cost": "medium",
+      "notes": "УрФУ (Уральский федеральный университет). Современный сайт с умеренным JS, вложенным меню навигации — интересная глубина иерархии. Хороший представитель региональных крупных университетов."
+    },
+
+    {
+      "name": "nsu.ru",
+      "domain": "www.nsu.ru",
+      "seed_urls": ["https://www.nsu.ru/"],
+      "recommended_profiles": ["shallow", "deep"],
+      "tags": ["ru", "university", "medium", "static-html", "pdf-heavy"],
+      "site_size_est": "1000+",
+      "js_render_cost": "minimal",
+      "notes": "НГУ (Новосибирский университет). Меньше по объёму, почти без JS. Хорош как «лёгкий» вариант в категории российских университетов — быстрый рендеринг, нижняя граница avg_render_time для этой группы."
+    },
+
+    {
+      "_comment": "════════════════════════════════════════════════",
+      "_comment": " ГРУППА B — Международные университеты         ",
+      "_comment": "════════════════════════════════════════════════"
+    },
+
+    {
+      "name": "mit.edu",
+      "domain": "www.mit.edu",
+      "seed_urls": ["https://www.mit.edu/"],
+      "recommended_profiles": ["deep", "full"],
+      "tags": ["en", "university", "large", "js-medium", "pdf-heavy", "deep-hierarchy"],
+      "site_size_est": "10000+",
+      "js_render_cost": "medium",
+      "notes": "MIT. Один из крупнейших академических сайтов. Глубокая иерархия подразделений (departments, labs, courses). Много PDF-публикаций. Умеренный JS. Хороший стресс-тест для Priority frontier — хабовые страницы (dept. index) должны получить высокий in-degree."
+    },
+
+    {
+      "name": "stanford.edu",
+      "domain": "www.stanford.edu",
+      "seed_urls": ["https://www.stanford.edu/"],
+      "recommended_profiles": ["deep", "full"],
+      "tags": ["en", "university", "large", "js-medium", "pdf-heavy"],
+      "site_size_est": "8000+",
+      "js_render_cost": "medium",
+      "notes": "Stanford. Схожий с MIT масштаб, но другая CMS и структура навигации — полезно для сравнения топологий. Большой раздел research с публикациями."
+    },
+
+    {
+      "name": "ox.ac.uk",
+      "domain": "www.ox.ac.uk",
+      "seed_urls": ["https://www.ox.ac.uk/"],
+      "recommended_profiles": ["deep", "full"],
+      "tags": ["en", "university", "large", "js-light", "pdf-heavy", "diverse-subdomains"],
+      "site_size_est": "5000+",
+      "js_render_cost": "low",
+      "notes": "Оксфорд. Европейский контрагент MIT/Stanford. Преимущественно статичный HTML, быстрый рендеринг. Много поддоменов факультетов — интересна работа ContentFilter на cross-subdomain ссылках (crawler ограничен одним доменом)."
+    },
+
+    {
+      "name": "eth.ch",
+      "domain": "ethz.ch",
+      "seed_urls": ["https://ethz.ch/en.html"],
+      "recommended_profiles": ["shallow", "deep"],
+      "tags": ["en", "university", "large", "js-medium", "multilingual", "pdf-heavy"],
+      "site_size_est": "3000+",
+      "js_render_cost": "medium",
+      "notes": "ETH Zürich. Двуязычный (EN/DE) сайт — проверяет, не засоряет ли краулер frontier дублями одного контента на разных языках. Современный дизайн с умеренным JS."
+    },
+
+    {
+      "_comment": "════════════════════════════════════════════════",
+      "_comment": " ГРУППА C — Документация                      ",
+      "_comment": "════════════════════════════════════════════════"
+    },
+
+    {
+      "name": "docs.python.org",
+      "domain": "docs.python.org",
+      "seed_urls": ["https://docs.python.org/3/"],
+      "recommended_profiles": ["deep", "full"],
+      "tags": ["en", "docs", "large", "static-html", "dense-crosslinks", "sphinx"],
+      "site_size_est": "1000+",
+      "js_render_cost": "minimal",
+      "notes": "Sphinx-документация Python. Эталон для docs-категории: статичный HTML, очень плотный граф (каждая страница ссылается на 10–50 других через index/glossary). Даёт классическое степенное распределение in-degree. Идеален для анализа графа в разделе 8 отчёта."
+    },
+
+    {
+      "name": "docs.docker.com",
+      "domain": "docs.docker.com",
+      "seed_urls": ["https://docs.docker.com/"],
+      "recommended_profiles": ["shallow", "deep"],
+      "tags": ["en", "docs", "large", "js-heavy", "next-js", "deep-hierarchy"],
+      "site_size_est": "2000+",
+      "js_render_cost": "high",
+      "notes": "Next.js SPA — самый JS-heavy таргет в подборке. Playwright должен дождаться гидратации React. Верхняя граница avg_render_time. Важен для диаграммы Throughput vs concurrency (кривая JS-heavy 8с). Несколько крупных разделов: Engine, Compose, Desktop, Hub."
+    },
+
+    {
+      "name": "docs.ansible.com",
+      "domain": "docs.ansible.com",
+      "seed_urls": ["https://docs.ansible.com/ansible/latest/"],
+      "recommended_profiles": ["deep", "full"],
+      "tags": ["en", "docs", "large", "static-html", "sphinx", "pdf-available"],
+      "site_size_est": "3000+",
+      "js_render_cost": "minimal",
+      "notes": "Sphinx-docs Ansible. Очень большой объём страниц в одном поддомене. Хорош как стресс-тест FRONTIER_EMPTY — при достаточном max_pages можно получить полный обход и сравнить с MAX_PAGES_REACHED на тех же данных. Есть PDF-выгрузка всей документации."
+    }
+
+  ]
+}

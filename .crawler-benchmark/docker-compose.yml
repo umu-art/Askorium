@@ -1,0 +1,54 @@
+version: "3.9"
+
+# ── Standalone benchmark stack ────────────────────────────────────────────────
+# Параметры, которые меняются между прогонами:
+#   - REDIS_URL: "" = in-memory frontier, "redis://redis:6379" = Redis
+#   - replicas рендерера: deploy.replicas (или --scale renderer=N при up)
+
+services:
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    # Поднимается всегда; используется только если REDIS_URL != ""
+
+  ask-crawler:
+    image: askorium/ask-crawler:latest
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      REDIS_URL: "redis://redis:6379"              # "" = in-memory,  "redis://redis:6379" = Redis
+      CRAWLER_BATCH_MODE: "true"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: "no"
+
+  ask-parser:
+    image: askorium/ask-parser:latest
+    environment:
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: "no"
+
+  renderer:
+    image: askorium/ask-renderer:latest
+    environment:
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: "no"
+    deploy:
+      replicas: 4        # менять: 1 / 2 / 3 / 5

@@ -18,3 +18,5 @@ venv
 .e2e-test-crawler/output
 .e2e-test-crawler/logs
 CLAUDE.md
+
+.crawler-benchmark/results

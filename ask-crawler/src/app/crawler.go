@@ -101,6 +101,7 @@ func (s *CrawlerService) HandleTask(ctx context.Context, msg []byte) error {
 	maxDepth := defaultMaxDepth
 	maxPages := defaultMaxPages
 	concurrency := defaultConcurrency
+	priority := false
 	if req.Options != nil {
 		if req.Options.MaxDepth != nil {
 			maxDepth = *req.Options.MaxDepth
@@ -111,15 +112,19 @@ func (s *CrawlerService) HandleTask(ctx context.Context, msg []byte) error {
 		if req.Options.Concurrency != nil {
 			concurrency = *req.Options.Concurrency
 		}
+		if req.Options.Priority != nil {
+			priority = *req.Options.Priority
+		}
 	}
 
 	s.logger.Info("crawler: task options",
 		"max_depth", maxDepth,
 		"max_pages", maxPages,
 		"concurrency", concurrency,
+		"priority", priority,
 	)
 
-	frontier := s.factory.NewFrontier(req.TaskId, s.batchMode)
+	frontier := s.factory.NewFrontier(req.TaskId, priority)
 	visited := s.factory.NewVisitedStore(req.TaskId)
 	job := applib.NewJobState(req.TaskId, req.Domain, maxDepth, maxPages, concurrency, req.Metadata, frontier, visited)
 
