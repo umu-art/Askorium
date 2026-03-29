@@ -20,4 +20,5 @@ type RawBlock struct {
 	HeadingLevel int32
 	AncestorTags []string // semantic tag names of DOM ancestors (e.g. "main", "article", "aside")
 	Score        float64  // set by BlockSelector
+	GroupIdx     int      // DOM position of nearest ancestor containing ≥2 extracted blocks
 }

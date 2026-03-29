@@ -1,6 +1,7 @@
 package segment
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -34,13 +35,30 @@ func NewEnhancedDOMBlockSegmenter(ts TableSerializer) text.BlockSegmenter {
 }
 
 func (s *EnhancedDOMBlockSegmenter) Segment(doc *goquery.Selection, _ string) []text.RawBlock {
+	// Build DOM pre-order position map so blocks from different passes
+	// can be sorted by their actual position in the HTML document.
+	domPos := make(map[*html.Node]int)
+	var posCounter int
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		domPos[n] = posCounter
+		posCounter++
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	for _, n := range doc.Nodes {
+		walk(n)
+	}
+
 	var blocks []text.RawBlock
-	idx := 0
+	var blockNodes []*html.Node // parallel slice: DOM node for each block
 	collected := make(map[*html.Node]bool)
 
 	emit := func(node *goquery.Selection, rawText, tag string, blockType scrappermodel.ContentBlockType, headingLevel int32) {
+		rawNode := node.Get(0)
 		blocks = append(blocks, text.RawBlock{
-			Idx:          idx,
+			Idx:          domPos[rawNode], // temporary: DOM position for sorting
 			HTMLId:       htmlIdAttr(node),
 			TagName:      tag,
 			Text:         rawText,
@@ -51,7 +69,7 @@ func (s *EnhancedDOMBlockSegmenter) Segment(doc *goquery.Selection, _ string) []
 			Type:         blockType,
 			HeadingLevel: headingLevel,
 		})
-		idx++
+		blockNodes = append(blockNodes, rawNode)
 	}
 
 	// Pass 1: standard block elements (without li — handled separately)
@@ -195,9 +213,35 @@ func (s *EnhancedDOMBlockSegmenter) Segment(doc *goquery.Selection, _ string) []
 		})
 	}
 
-	// Link blocks and compute position
+	// Sort blocks (and their node references) by DOM position
+	sort.Sort(blockSorter{blocks: blocks, nodes: blockNodes})
+
+	// Compute GroupIdx: for each block, find the nearest ancestor with ≥2 block descendants.
+	blockNodeSet := make(map[*html.Node]bool, len(blockNodes))
+	for _, nd := range blockNodes {
+		blockNodeSet[nd] = true
+	}
+	// Precompute: for each ancestor, how many extracted blocks descend from it
+	descCount := make(map[*html.Node]int)
+	for _, nd := range blockNodes {
+		for a := nd; a != nil; a = a.Parent {
+			descCount[a]++
+		}
+	}
+	for i, nd := range blockNodes {
+		blocks[i].GroupIdx = -1
+		for a := nd.Parent; a != nil; a = a.Parent {
+			if descCount[a] >= 2 {
+				blocks[i].GroupIdx = domPos[a]
+				break
+			}
+		}
+	}
+
+	// Reassign sequential indices, link blocks, and compute position
 	n := len(blocks)
 	for i := range blocks {
+		blocks[i].Idx = i
 		blocks[i].Position = float64(i) / float64(max(n, 1))
 		if i > 0 {
 			blocks[i].PrevBlock = &blocks[i-1]
@@ -208,6 +252,19 @@ func (s *EnhancedDOMBlockSegmenter) Segment(doc *goquery.Selection, _ string) []
 	}
 
 	return blocks
+}
+
+// blockSorter sorts blocks and blockNodes together by Idx (DOM position).
+type blockSorter struct {
+	blocks []text.RawBlock
+	nodes  []*html.Node
+}
+
+func (s blockSorter) Len() int           { return len(s.blocks) }
+func (s blockSorter) Less(i, j int) bool { return s.blocks[i].Idx < s.blocks[j].Idx }
+func (s blockSorter) Swap(i, j int) {
+	s.blocks[i], s.blocks[j] = s.blocks[j], s.blocks[i]
+	s.nodes[i], s.nodes[j] = s.nodes[j], s.nodes[i]
 }
 
 func classifyTagEnhanced(tag string) (scrappermodel.ContentBlockType, int32) {

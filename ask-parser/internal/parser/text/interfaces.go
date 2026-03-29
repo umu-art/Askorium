@@ -48,6 +48,12 @@ type TextNormalizer interface {
 	Normalize(blocks []RawBlock) []RawBlock
 }
 
+// BlockMerger consolidates fragmented blocks into embedding-friendly chunks.
+// Applied after normalization, before final output.
+type BlockMerger interface {
+	Merge(blocks []RawBlock) []RawBlock
+}
+
 // TextPipeline is the complete internal pipeline used by TextExtractor.
 type TextPipeline interface {
 	Run(doc *goquery.Selection, pageURL string) []scrappermodel.ContentBlock
