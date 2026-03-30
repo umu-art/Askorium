@@ -49,6 +49,7 @@ public class AnswerActivityImpl extends AbstractQueryActivity implements AnswerA
         var params = searchProperties.forMode(query.getMode());
 
         var answerBlocks = query.getSources().stream()
+                .filter(s -> s.getScoreFinal() != null)
                 .sorted(Comparator.comparing(QuerySourceEntity::getScoreFinal).reversed())
                 .limit(params.getFinalTopN())
                 .toList();
