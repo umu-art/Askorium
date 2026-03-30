@@ -10,13 +10,20 @@ _client = OpenAI(
     base_url=config.OPENROUTER_BASE_URL,
 )
 
+res = {}
 
 def _embed(texts: list[str]) -> np.ndarray:
+    h = hash(','.join(texts))
+    if h in res:
+        return res[h]
+
     response = _client.embeddings.create(
         model=config.EMBEDDING_MODEL,
         input=texts,
     )
-    return np.array([d.embedding for d in response.data])
+    result = np.array([d.embedding for d in response.data])
+    res[h] = result
+    return result
 
 
 def _sim_matrix(sources: list[str], contexts: list[str]) -> np.ndarray:
