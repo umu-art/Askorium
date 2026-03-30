@@ -9,10 +9,13 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import ru.askorium.core.search.config.SearchProperties;
 import ru.askorium.core.search.domain.QueryEntity;
+import ru.askorium.core.search.domain.QuerySourceEntity;
 import ru.askorium.core.search.service.ContextBuilderService;
 import ru.askorium.core.search.workflow.activities.AnswerActivity;
 
+import java.util.Comparator;
 import java.util.UUID;
 
 @Component
@@ -22,6 +25,7 @@ public class AnswerActivityImpl extends AbstractQueryActivity implements AnswerA
 
     private final ChatClient chatClient;
     private final ContextBuilderService contextBuilderService;
+    private final SearchProperties searchProperties;
 
     @Value("classpath:prompts/answer.st")
     private Resource promptResource;
@@ -42,7 +46,14 @@ public class AnswerActivityImpl extends AbstractQueryActivity implements AnswerA
             throw new IllegalStateException("Sources are not retrieved");
         }
 
-        var context = String.join("\n\n", contextBuilderService.buildContext(query.getSources()));
+        var params = searchProperties.forMode(query.getMode());
+
+        var answerBlocks = query.getSources().stream()
+                .sorted(Comparator.comparing(QuerySourceEntity::getScoreFinal).reversed())
+                .limit(params.getFinalTopN())
+                .toList();
+
+        var context = String.join("\n\n", contextBuilderService.buildContext(answerBlocks));
 
         var answer = chatClient.prompt()
                 .user(u -> u.text(promptResource)
