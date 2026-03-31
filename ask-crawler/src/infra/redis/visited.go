@@ -1,10 +1,14 @@
 package redisinfra
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type RedisVisitedStore struct {
 	client *Client
 	key    string
+	ttl    time.Duration
 }
 
 func (s *RedisVisitedStore) Contains(url string) bool {
@@ -17,7 +21,12 @@ func (s *RedisVisitedStore) Contains(url string) bool {
 }
 
 func (s *RedisVisitedStore) Add(url string) {
-	if err := s.client.rdb.SAdd(context.Background(), s.key, url).Err(); err != nil {
+	ctx := context.Background()
+	if err := s.client.rdb.SAdd(ctx, s.key, url).Err(); err != nil {
 		s.client.logger.Error("redis: SAdd visited failed", "key", s.key, "error", err)
+		return
+	}
+	if err := s.client.rdb.Expire(ctx, s.key, s.ttl).Err(); err != nil {
+		s.client.logger.Error("redis: Expire visited failed", "key", s.key, "error", err)
 	}
 }

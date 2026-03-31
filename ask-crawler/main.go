@@ -5,7 +5,9 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
+	"time"
 
 	"ask-crawler/src/app"
 	applib "ask-crawler/src/app/lib"
@@ -89,8 +91,15 @@ func buildFrontierFactory(ctx context.Context, logger *slog.Logger) applib.Front
 		return applib.NewMemFrontierFactory()
 	}
 
-	logger.Info("frontier: using Redis store", "url", redisURL)
-	return redisinfra.NewFrontierFactory(rc)
+	ttlMinutes := 100
+	if v := envOr("REDIS_TTL_MINUTES", ""); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			ttlMinutes = n
+		}
+	}
+	ttl := time.Duration(ttlMinutes) * time.Minute
+	logger.Info("frontier: using Redis store", "url", redisURL, "ttl", ttl)
+	return redisinfra.NewFrontierFactory(rc, ttl)
 }
 
 func envOr(key, fallback string) string {

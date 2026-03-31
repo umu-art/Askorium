@@ -3,6 +3,7 @@ package redisinfra
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	applib "ask-crawler/src/app/lib"
 
@@ -13,15 +14,21 @@ import (
 type RedisPriorityFrontier struct {
 	client *Client
 	key    string
+	ttl    time.Duration
 }
 
 func (f *RedisPriorityFrontier) Push(c applib.URLCandidate) {
 	data, _ := json.Marshal(c)
-	if err := f.client.rdb.ZAdd(context.Background(), f.key, redis.Z{
+	ctx := context.Background()
+	if err := f.client.rdb.ZAdd(ctx, f.key, redis.Z{
 		Score:  c.Score,
 		Member: string(data),
 	}).Err(); err != nil {
 		f.client.logger.Error("redis: ZAdd frontier failed", "key", f.key, "error", err)
+		return
+	}
+	if err := f.client.rdb.Expire(ctx, f.key, f.ttl).Err(); err != nil {
+		f.client.logger.Error("redis: Expire frontier failed", "key", f.key, "error", err)
 	}
 }
 
@@ -55,12 +62,18 @@ func (f *RedisPriorityFrontier) Len() int {
 type RedisFIFOFrontier struct {
 	client *Client
 	key    string
+	ttl    time.Duration
 }
 
 func (f *RedisFIFOFrontier) Push(c applib.URLCandidate) {
 	data, _ := json.Marshal(c)
-	if err := f.client.rdb.RPush(context.Background(), f.key, string(data)).Err(); err != nil {
+	ctx := context.Background()
+	if err := f.client.rdb.RPush(ctx, f.key, string(data)).Err(); err != nil {
 		f.client.logger.Error("redis: RPush frontier failed", "key", f.key, "error", err)
+		return
+	}
+	if err := f.client.rdb.Expire(ctx, f.key, f.ttl).Err(); err != nil {
+		f.client.logger.Error("redis: Expire frontier failed", "key", f.key, "error", err)
 	}
 }
 
