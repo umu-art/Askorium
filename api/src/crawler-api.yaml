@@ -114,6 +114,10 @@ components:
           type: boolean
           default: true
           description: Соблюдать директивы robots.txt
+        priority:
+          type: boolean
+          default: false
+          description: Использовать приоритетную очередь (Best-First) вместо FIFO
         scrape_options:
           $ref: "#/components/schemas/ScrapeOptions"
 

@@ -47,14 +47,14 @@ type JobState struct {
 	StartedAt time.Time
 
 	mu           sync.Mutex
-	visited      map[string]bool
+	visited      VisitedStore
 	frontier     Frontier
 	progress     map[string]*PageProgress // key: URL
 	pagesScraped int32
 	pagesFailed  int32
 }
 
-func NewJobState(taskID, domain string, maxDepth, maxPages, concurrency int32, metadata map[string]interface{}, frontier Frontier) *JobState {
+func NewJobState(taskID, domain string, maxDepth, maxPages, concurrency int32, metadata map[string]interface{}, frontier Frontier, visited VisitedStore) *JobState {
 	return &JobState{
 		TaskID:      taskID,
 		Domain:      domain,
@@ -63,7 +63,7 @@ func NewJobState(taskID, domain string, maxDepth, maxPages, concurrency int32, m
 		Concurrency: concurrency,
 		Metadata:    metadata,
 		StartedAt:   time.Now(),
-		visited:     make(map[string]bool),
+		visited:     visited,
 		frontier:    frontier,
 		progress:    make(map[string]*PageProgress),
 	}
@@ -73,10 +73,10 @@ func NewJobState(taskID, domain string, maxDepth, maxPages, concurrency int32, m
 func (j *JobState) Enqueue(c URLCandidate) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	if j.visited[c.URL] {
+	if j.visited.Contains(c.URL) {
 		return
 	}
-	j.visited[c.URL] = true
+	j.visited.Add(c.URL)
 	j.progress[c.URL] = &PageProgress{
 		URL:        c.URL,
 		Depth:      c.Depth,

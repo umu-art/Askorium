@@ -70,7 +70,9 @@ func classifyLink(href, pageHost string) scrappermodel.LinkType {
 	if err != nil || u.Host == "" {
 		return scrappermodel.LINKTYPE_INTERNAL
 	}
-	if strings.EqualFold(u.Host, pageHost) {
+	linkHost := strings.ToLower(u.Host)
+	base := strings.ToLower(pageHost)
+	if linkHost == base || strings.HasSuffix(linkHost, "."+base) {
 		return scrappermodel.LINKTYPE_INTERNAL
 	}
 	return scrappermodel.LINKTYPE_EXTERNAL

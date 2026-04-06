@@ -12,9 +12,7 @@ venv
 
 .env
 
-.context
-.e2e-test-scrapper/output
-.e2e-test-scrapper/logs
-.e2e-test-crawler/output
-.e2e-test-crawler/logs
-CLAUDE.md
+.scrapper-e2e/benchmark-crawler/results
+.scrapper-e2e/test-crawler/output
+.scrapper-e2e/test-one-page-scrapping/output
+.scrapper-e2e/test-one-page-scrapping/logs

@@ -17,7 +17,7 @@ type BatchConfig struct {
 func DefaultBatchConfig() BatchConfig {
 	return BatchConfig{
 		MaxSize:        20,
-		MaxAge:         15 * time.Second,
+		MaxAge:         60 * time.Second,
 		MaxDocsPerPage: 10,
 	}
 }
