@@ -51,9 +51,9 @@ spec:
           resources:
             requests:
               cpu: "20m"
-              memory: "50M"
+              memory: "2G"
             limits:
-              memory: "500M"
+              memory: "4G"
 
           securityContext:
             allowPrivilegeEscalation: false

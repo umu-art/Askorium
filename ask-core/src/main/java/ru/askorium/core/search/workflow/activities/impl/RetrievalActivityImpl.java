@@ -57,6 +57,8 @@ public class RetrievalActivityImpl extends AbstractQueryActivity implements Retr
 
         fillScores(sources, bm25Results, knnResults, params.getRrfK());
 
+        sources.forEach(s -> s.setScoreFinal(s.getFusionScore()));
+
         if (searchProperties.isUseFullSource()) {
             sources = deduplicateByPage(sources);
         }

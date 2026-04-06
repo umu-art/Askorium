@@ -34,28 +34,28 @@ public class RerankActivityImpl extends AbstractQueryActivity implements RerankA
 
     @Override
     protected void doWithQuery(QueryEntity query) {
-        if (StringUtils.isBlank(query.getNormalizedQuery())) {
-            throw new IllegalStateException("Normalized query is not generated");
-        }
-
-        if (CollectionUtils.isEmpty(query.getSources())) {
-            throw new IllegalStateException("Sources are not retrieved or empty");
-        }
-
-        var params = searchProperties.forMode(query.getMode());
-
-        var topSources = query.getSources().stream()
-                .sorted(Comparator.comparing(QuerySourceEntity::getFusionScore).reversed())
-                .limit(params.getRerankTopN())
-                .toList();
-
-        var rerankBlocks = topSources.stream()
-                .map(s -> new RerankBlock().id(s.getId()).text(s.getText()))
-                .toList();
-
-        var scoreMap = askEncoderService.rerank(query.getNormalizedQuery(), rerankBlocks).stream()
-                .collect(Collectors.toMap(RerankResult::getId, RerankResult::getScore));
-
-        topSources.forEach(s -> s.setScoreFinal(scoreMap.get(s.getId())));
+//        if (StringUtils.isBlank(query.getNormalizedQuery())) {
+//            throw new IllegalStateException("Normalized query is not generated");
+//        }
+//
+//        if (CollectionUtils.isEmpty(query.getSources())) {
+//            throw new IllegalStateException("Sources are not retrieved or empty");
+//        }
+//
+//        var params = searchProperties.forMode(query.getMode());
+//
+//        var topSources = query.getSources().stream()
+//                .sorted(Comparator.comparing(QuerySourceEntity::getFusionScore).reversed())
+//                .limit(params.getRerankTopN())
+//                .toList();
+//
+//        var rerankBlocks = topSources.stream()
+//                .map(s -> new RerankBlock().id(s.getId()).text(s.getText()))
+//                .toList();
+//
+//        var scoreMap = askEncoderService.rerank(query.getNormalizedQuery(), rerankBlocks).stream()
+//                .collect(Collectors.toMap(RerankResult::getId, RerankResult::getScore));
+//
+//        topSources.forEach(s -> s.setScoreFinal(scoreMap.get(s.getId())));
     }
 }
