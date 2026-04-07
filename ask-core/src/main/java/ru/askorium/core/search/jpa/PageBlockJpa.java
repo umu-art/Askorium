@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface PageBlockJpa extends JpaRepository<PageBlockEntity, UUID> {
     List<PageBlockEntity> findAllByPage_Id(UUID pageId);
+    List<PageBlockEntity> findAllByIdInAndPage_SourceId(List<UUID> ids, UUID sourceId);
 }

@@ -53,7 +53,7 @@ public class RetrievalActivityImpl extends AbstractQueryActivity implements Retr
         var bm25Results = indexService.searchBM25(query.getNormalizedQuery(), params.getBm25Size());
         var knnResults = indexService.searchKnn(new IndexVector(null, query.getQueryVector(), 0f), params.getKnnSize());
 
-        List<QuerySourceEntity> sources = mapToSources(bm25Results, knnResults);
+        List<QuerySourceEntity> sources = mapToSources(bm25Results, knnResults, query.getSourceId());
 
         fillScores(sources, bm25Results, knnResults, params.getRrfK());
 
@@ -67,7 +67,7 @@ public class RetrievalActivityImpl extends AbstractQueryActivity implements Retr
         query.getSources().addAll(sources);
     }
 
-    private List<QuerySourceEntity> mapToSources(List<IndexText> bm25Results, List<IndexVector> knnResults) {
+    private List<QuerySourceEntity> mapToSources(List<IndexText> bm25Results, List<IndexVector> knnResults, UUID sourceId) {
         var keys = Streams.concat(
                         bm25Results.stream().map(IndexText::getKey),
                         knnResults.stream().map(IndexVector::getKey))
@@ -89,8 +89,8 @@ public class RetrievalActivityImpl extends AbstractQueryActivity implements Retr
                 .distinct()
                 .toList();
 
-        var blocks = pageBlockJpa.findAllById(blockIds);
-        var documents = pageDocumentJpa.findAllById(documentIds);
+        var blocks = pageBlockJpa.findAllByIdInAndPage_SourceId(blockIds, sourceId);
+        var documents = pageDocumentJpa.findAllByIdInAndPage_SourceId(documentIds, sourceId);
 
         return Streams.concat(
                 blocks.stream().map(block -> {
