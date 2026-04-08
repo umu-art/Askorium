@@ -151,6 +151,7 @@ func (s *CrawlerService) HandleTask(ctx context.Context, msg []byte) error {
 			ac.job.DrainParsed(len(pages))
 		} else {
 			ac.addBatch(pages)
+			ac.job.DrainParsed(len(pages)) // освобождаем progress map; иначе IsDone() никогда не вернёт true
 		}
 	})
 

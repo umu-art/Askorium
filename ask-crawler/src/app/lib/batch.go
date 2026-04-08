@@ -102,7 +102,7 @@ func (b *BatchBuilder) doFlush() {
 	for i, p := range b.pending {
 		pages[i] = *p
 	}
-	b.pending = b.pending[:0]
+	b.pending = nil // nil вместо [:0] — освобождаем backing array с указателями на страницы
 	b.flush(pages, b.seq)
 }
 
