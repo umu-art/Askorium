@@ -50,8 +50,7 @@ spring:
     workers-auto-discovery:
       packages:
         - ru.askorium.core.search.workflow
-        - ru.askorium.core.indexing.workflow
-        - ru.askorium.core.source.sync
+        - ru.askorium.core.source.workflow
 
   threads:
     virtual:

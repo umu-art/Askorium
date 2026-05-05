@@ -10,7 +10,7 @@ _sem = asyncio.Semaphore(settings.max_concurrent_requests)
 
 class EncoderActivities:
 
-    @activity.defn(name="generateEmbeddings")
+    @activity.defn(name="GenerateEmbeddings")
     async def generate_embeddings(self, texts: list[str]) -> list[list[float]]:
         async with _sem:
             embedder = get_embedder(settings)
@@ -20,7 +20,7 @@ class EncoderActivities:
             )
             return vectors.tolist()
 
-    @activity.defn(name="rerank")
+    @activity.defn(name="Rerank")
     async def rerank(self, query: str, blocks: list[dict]) -> list[dict]:
         async with _sem:
             reranker = get_reranker(settings)

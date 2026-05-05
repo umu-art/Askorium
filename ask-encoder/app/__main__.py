@@ -21,7 +21,7 @@ async def main():
     get_embedder(settings)
     get_reranker(settings)
 
-    client = await Client.connect(settings.temporal_url)
+    client = await Client.connect(settings.temporal_url, tls=True)
     activities = EncoderActivities()
 
     worker = Worker(
