@@ -11,6 +11,7 @@ import ru.askorium.core.search.workflow.activities.CompletionActivity;
 import ru.askorium.core.search.workflow.activities.EmbeddingActivity;
 import ru.askorium.core.search.workflow.activities.NormalizationActivity;
 import ru.askorium.core.search.workflow.activities.RerankActivity;
+import ru.askorium.core.search.workflow.activities.RerankData;
 import ru.askorium.core.search.workflow.activities.RetrievalActivity;
 
 import java.time.Duration;
@@ -68,7 +69,11 @@ public class SearchWorkflowImpl implements SearchWorkflow {
             embeddingActivity.saveEmbedding(queryId, vectors.getFirst());
 
             retrievalActivity.retrieve(queryId);
-            rerankActivity.rerank(queryId);
+
+            var rerankData = rerankActivity.getRerankData(queryId);
+            var reranked = encoderActivity.rerank(rerankData.getQuery(), rerankData.getBlocks());
+            rerankActivity.saveRerankScores(queryId, reranked);
+
             answerActivity.generateAnswer(queryId);
             completionActivity.markDone(queryId);
         } catch (Exception e) {

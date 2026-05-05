@@ -8,4 +8,4 @@ spec:
   trafficPolicy:
     connectionPool:
       http:
-        h2UpgradePolicy: UPGRADE
+        useClientProtocol: true

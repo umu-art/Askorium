@@ -161,13 +161,13 @@ public class RetrievalActivityImpl extends AbstractQueryActivity implements Retr
 
             var bm25Pos = bm25PositionMap.get(source.getIndexKey());
             if (bm25Pos != null) {
-                rrfScore = Math.max(rrfScore, 1.0f / (rrfK + bm25Pos + 1));
+                rrfScore += 1.0f / (rrfK + bm25Pos + 1);
                 source.setScoreSparse(bm25ScoreMap.get(source.getIndexKey()));
             }
 
             var knnPos = knnPositionMap.get(source.getIndexKey());
             if (knnPos != null) {
-                rrfScore = Math.max(rrfScore, 1.0f / (rrfK + knnPos + 1));
+                rrfScore += 1.0f / (rrfK + knnPos + 1);
                 source.setScoreDense(knnScoreMap.get(source.getIndexKey()));
             }
 
