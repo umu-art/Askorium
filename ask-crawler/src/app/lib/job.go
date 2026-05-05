@@ -130,10 +130,9 @@ func (j *JobState) MarkParsed(url string, result crawler_model.ScrappedPage) {
 func (j *JobState) MarkFailed(url string, reason string) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	if p, ok := j.progress[url]; ok {
-		p.Status = PageStatusFailed
-		p.Error = reason
+	if _, ok := j.progress[url]; ok {
 		j.pagesFailed++
+		delete(j.progress, url)
 	}
 }
 
@@ -165,15 +164,15 @@ func (j *JobState) IsDone() bool {
 	return true
 }
 
-// DrainParsed возвращает до limit страниц в статусе Parsed и переводит их в Batched.
+// DrainParsed удаляет до limit страниц в статусе Parsed из progress map и возвращает их.
+// Записи удаляются сразу — Result (тело страницы) освобождается для GC.
 func (j *JobState) DrainParsed(limit int) []*PageProgress {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	var result []*PageProgress
-	for _, p := range j.progress {
+	for url, p := range j.progress {
 		if p.Status == PageStatusParsed {
-			p.Status = PageStatusBatched
-			p.BatchedAt = time.Now()
+			delete(j.progress, url)
 			result = append(result, p)
 			if len(result) >= limit {
 				break
@@ -192,9 +191,8 @@ func (j *JobState) ExpireInFlight(timeout time.Duration) []string {
 	now := time.Now()
 	for url, p := range j.progress {
 		if p.Status == PageStatusRendering && now.Sub(p.SentAt) > timeout {
-			p.Status = PageStatusFailed
-			p.Error = "in-flight TTL expired"
 			j.pagesFailed++
+			delete(j.progress, url)
 			expired = append(expired, url)
 		}
 	}
