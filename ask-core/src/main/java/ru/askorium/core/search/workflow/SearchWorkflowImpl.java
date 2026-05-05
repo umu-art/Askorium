@@ -5,6 +5,7 @@ import io.temporal.common.RetryOptions;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.spring.boot.WorkflowImpl;
 import io.temporal.workflow.Workflow;
+import ru.askorium.core.encoder.EncoderActivity;
 import ru.askorium.core.search.workflow.activities.AnswerActivity;
 import ru.askorium.core.search.workflow.activities.CompletionActivity;
 import ru.askorium.core.search.workflow.activities.EmbeddingActivity;
@@ -13,6 +14,7 @@ import ru.askorium.core.search.workflow.activities.RerankActivity;
 import ru.askorium.core.search.workflow.activities.RetrievalActivity;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 @WorkflowImpl(taskQueues = "askorium-search")
@@ -26,11 +28,23 @@ public class SearchWorkflowImpl implements SearchWorkflow {
                     .build())
             .build();
 
+    private static final ActivityOptions ENCODER_OPTIONS = ActivityOptions.newBuilder()
+            .setTaskQueue("askorium-encoder")
+            .setStartToCloseTimeout(Duration.ofMinutes(2))
+            .setRetryOptions(RetryOptions.newBuilder()
+                    .setInitialInterval(Duration.ofSeconds(5))
+                    .setMaximumAttempts(3)
+                    .build())
+            .build();
+
     private final NormalizationActivity normalizationActivity =
             Workflow.newActivityStub(NormalizationActivity.class, DEFAULT_OPTIONS);
 
     private final EmbeddingActivity embeddingActivity =
             Workflow.newActivityStub(EmbeddingActivity.class, DEFAULT_OPTIONS);
+
+    private final EncoderActivity encoderActivity =
+            Workflow.newActivityStub(EncoderActivity.class, ENCODER_OPTIONS);
 
     private final RetrievalActivity retrievalActivity =
             Workflow.newActivityStub(RetrievalActivity.class, DEFAULT_OPTIONS);
@@ -48,7 +62,11 @@ public class SearchWorkflowImpl implements SearchWorkflow {
     public void search(UUID queryId) {
         try {
             normalizationActivity.normalize(queryId);
-            embeddingActivity.generateEmbedding(queryId);
+
+            var normalizedQuery = embeddingActivity.getNormalizedQuery(queryId);
+            var vectors = encoderActivity.generateEmbeddings(List.of(normalizedQuery));
+            embeddingActivity.saveEmbedding(queryId, vectors.getFirst());
+
             retrievalActivity.retrieve(queryId);
             rerankActivity.rerank(queryId);
             answerActivity.generateAnswer(queryId);

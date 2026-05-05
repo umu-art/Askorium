@@ -1,7 +1,6 @@
 askorium:
   api:
     self-url: ${ASK_CORE_URL:http://localhost:8080}
-    encoder-url: ${ASK_ENCODER_URL:http://localhost:8000}
 
   scrapper:
     scrapper-request-queue-name: askorium.crawler.input
@@ -51,6 +50,8 @@ spring:
     workers-auto-discovery:
       packages:
         - ru.askorium.core.search.workflow
+        - ru.askorium.core.indexing.workflow
+        - ru.askorium.core.source.sync
 
   threads:
     virtual:

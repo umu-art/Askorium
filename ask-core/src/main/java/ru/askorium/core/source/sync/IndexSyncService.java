@@ -4,15 +4,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.askorium.core.ask_encoder_api.AskEncoderService;
 import ru.askorium.core.index.IndexService;
-import ru.askorium.core.index.IndexText;
-import ru.askorium.core.index.IndexVector;
-import ru.askorium.core.source.domain.PageEntity;
 import ru.askorium.core.source.jpa.PageJpa;
 
 import java.util.ArrayList;
-import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -20,63 +15,7 @@ import java.util.stream.Stream;
 public class IndexSyncService {
 
     private final IndexService indexService;
-    private final AskEncoderService askEncoderService;
     private final PageJpa pageJpa;
-
-    public void syncIndexes(ArrayList<PageEntity> updatedPages) {
-        log.debug("syncIndexes for {} updated pages", updatedPages.size());
-
-
-        var textsFromPages = updatedPages.stream()
-                .flatMap(page -> {
-                    var blocksTexts = page.getBlocks()
-                            .stream()
-                            .map(block ->
-                                    new IndexText(
-                                            block.getIndexId(),
-                                            block.getText(),
-                                            0f
-                                    ));
-
-                    var documentsText = page.getDocuments()
-                            .stream()
-                            .map(document ->
-                                    new IndexText(
-                                            document.getIndexId(),
-                                            document.getExtractedText(),
-                                            0f
-                                    ));
-
-                    return Stream.concat(blocksTexts, documentsText);
-                })
-                .toList();
-
-        var textsToEmbedding = textsFromPages.stream()
-                .map(IndexText::getText)
-                .toList();
-
-        var embeddings = askEncoderService.generateEmbeddings(textsToEmbedding);
-
-        var indexTextsWithEmbeddings = new ArrayList<IndexVector>();
-        for (int i = 0; i < textsFromPages.size(); i++) {
-            indexTextsWithEmbeddings.add(
-                    new IndexVector(
-                            textsFromPages.get(i).getKey(),
-                            embeddings.get(i),
-                            0f
-                    )
-            );
-        }
-
-        indexService.saveTexts(textsFromPages);
-        indexService.saveVectors(indexTextsWithEmbeddings);
-
-        log.debug("Synced {} texts and {} vectors for {} updated pages",
-                textsFromPages.size(),
-                indexTextsWithEmbeddings.size(),
-                updatedPages.size()
-        );
-    }
 
     @Transactional(transactionManager = "sourcesTransactionManager", readOnly = true)
     public void cleanupStaleIndexEntries() {

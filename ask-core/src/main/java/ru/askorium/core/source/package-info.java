@@ -1,4 +1,4 @@
 @org.springframework.modulith.ApplicationModule(
-        allowedDependencies = {"user", "text_processing", "ask_encoder_api", "common", "exception", "index"}
+        allowedDependencies = {"user", "text_processing", "common", "exception", "index", "indexing"}
 )
 package ru.askorium.core.source;

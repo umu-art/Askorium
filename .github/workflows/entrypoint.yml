@@ -17,9 +17,6 @@ jobs:
           - module: ask-core
             script: java
 
-          - module: ask-encoder
-            script: python
-
           - module: ask-parser
             script: go
 
